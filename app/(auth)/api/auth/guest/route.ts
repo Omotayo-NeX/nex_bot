@@ -1,21 +1,14 @@
-import { signIn } from '@/app/(auth)/auth';
-import { isDevelopmentEnvironment } from '@/lib/constants';
-import { getToken } from 'next-auth/jwt';
-import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const redirectUrl = searchParams.get('redirectUrl') || '/';
+import { NextResponse } from "next/server";
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-    secureCookie: !isDevelopmentEnvironment,
-  });
+// Simple health-check so we know the route works
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "guest" });
+}
 
-  if (token) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  return signIn('guest', { redirect: true, redirectTo: redirectUrl });
+// If your app posts here to create a guest session, keep the POST:
+export async function POST() {
+  // TODO: your guest creation logic
+  return NextResponse.json({ ok: true, who: "guest" });
 }

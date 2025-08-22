@@ -5,17 +5,28 @@ import { guestRegex, isDevelopmentEnvironment } from './lib/constants';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /*
-   * Playwright starts the dev server and requires a 200 status to
-   * begin the tests, so this ensures that the tests can start
-   */
+  // simple health-check
   if (pathname.startsWith('/ping')) {
     return new Response('pong', { status: 200 });
   }
 
-  if (pathname.startsWith('/api/auth')) {
+  // never run on Next internals or API routes
+  if (pathname.startsWith('/_next') || pathname.startsWith('/api')) {
     return NextResponse.next();
   }
+
+  // pages that should be reachable without a token
+  const publicPaths = [
+    '/login',
+    '/register',
+    '/favicon.ico',
+    '/opengraph-image',
+    '/twitter-image',
+    '/api/auth/guest', // allow the guest handler itself
+  ];
+  const isPublic =
+    publicPaths.some((p) => pathname.startsWith(p)) ||
+    /\.[a-zA-Z0-9]+$/.test(pathname); // any static asset
 
   const token = await getToken({
     req: request,
@@ -23,17 +34,21 @@ export async function middleware(request: NextRequest) {
     secureCookie: !isDevelopmentEnvironment,
   });
 
-  if (!token) {
+  // If no token and the path is protected, send user to guest (or /login if you prefer)
+  if (!token && !isPublic) {
     const redirectUrl = encodeURIComponent(request.url);
-
     return NextResponse.redirect(
       new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
     );
   }
 
+  // If logged-in (non-guest) user hits login/register, push them home
   const isGuest = guestRegex.test(token?.email ?? '');
-
-  if (token && !isGuest && ['/login', '/register'].includes(pathname)) {
+  if (
+    token &&
+    !isGuest &&
+    (pathname === '/login' || pathname === '/register')
+  ) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -41,19 +56,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/',
-    '/chat/:id',
-    '/api/:path*',
-    '/login',
-    '/register',
-
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
-  ],
+  // run on all pages except API, Next internals, and static files
+  matcher: ['/((?!api|_next|.*\\..*).*)'],
 };
