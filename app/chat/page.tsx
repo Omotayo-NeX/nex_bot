@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Send, Loader2, Sparkles, Trash2, Settings2, AlertCircle } from "lucide-react";
-import { cnNex } from "@/lib/cnNex";
-
 // --- Enhanced Types ---
 type EnterMode = "send" | "type";
 export type Role = "user" | "assistant" | "system";
