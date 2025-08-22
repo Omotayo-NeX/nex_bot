@@ -35,7 +35,6 @@ export async function POST(req: NextRequest) {
       return new Response("Failed to get AI response", { status: 500 });
     }
 
-    // Return the streaming response
     return new Response(response.body, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
