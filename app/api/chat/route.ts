@@ -81,5 +81,5 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Chat API error:", error);
     return new Response("Sorry, I'm having trouble responding right now.", { status: 500 });
-  }
+  } 
 }
