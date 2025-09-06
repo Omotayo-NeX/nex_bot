@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 
-// Deployment trigger
+// Force deployment refresh
 
 export const metadata: Metadata = {
   title: 'NeX Bot - AI Assistant',
