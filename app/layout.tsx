@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 
+// Deployment trigger
+
 export const metadata: Metadata = {
   title: 'NeX Bot - AI Assistant',
   description: 'Your intelligent AI assistant for digital marketing and automation',
