@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Trash2 } from 'lucide-react';
+import { Send, Sparkles, Plus, Download } from 'lucide-react';
 function cn(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
@@ -97,12 +97,14 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [pendingChunks, setPendingChunks] = useState<string[]>([]);
   const [conversationId, setConversationId] = useState<string>('');
+  const [currentChatId, setCurrentChatId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load conversation from localStorage on mount
   useEffect(() => {
     const currentConvId = Date.now().toString();
     setConversationId(currentConvId);
+    setCurrentChatId(currentConvId);
     
     const savedMessages = localStorage.getItem('nex_conversation');
     if (savedMessages) {
@@ -217,10 +219,37 @@ export default function ChatPage() {
     }
   };
 
-  const clearChat = () => {
+  const handleNewChat = () => {
     setMessages([]);
     setPendingChunks([]);
     localStorage.removeItem('nex_conversation');
+    
+    // Generate new chat ID
+    const newChatId = Date.now().toString();
+    setCurrentChatId(newChatId);
+    setConversationId(newChatId);
+  };
+
+  const handleDownloadChat = () => {
+    const chatData = {
+      chatId: currentChatId,
+      timestamp: new Date().toISOString(),
+      messages: messages
+    };
+    
+    const dataStr = JSON.stringify(chatData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `nex-chat-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the object URL
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -230,13 +259,23 @@ export default function ChatPage() {
           <Sparkles className="h-6 w-6 text-blue-400" />
           NeX AI
         </div>
-        <button
-          onClick={clearChat}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors text-sm"
-        >
-          <Trash2 className="h-4 w-4" />
-          Clear
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadChat}
+            disabled={messages.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+          >
+            <Download className="h-4 w-4" />
+            Download Chat
+          </button>
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            New Chat
+          </button>
+        </div>
       </header>
 
       <div
