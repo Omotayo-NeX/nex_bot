@@ -29,10 +29,15 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Ignore environment variables
+.env
+.env.local
+.env.development
+.env.production
+
 # turbo
 .turbo
 
-.env
 .vercel
 .env*.local
 
