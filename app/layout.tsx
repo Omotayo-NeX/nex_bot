@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'NeX Bot - AI Assistant',
-  description: 'Your intelligent assistant for NeX Consulting',
+  description: 'Your intelligent AI assistant for digital marketing and automation',
 }
 
 export default function RootLayout({

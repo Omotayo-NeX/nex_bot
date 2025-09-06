@@ -349,7 +349,7 @@ export default function PictureGenerator() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-gray-300 text-xs leading-relaxed line-clamp-3">
-                            "{item.prompt}"
+                            &quot;{item.prompt}&quot;
                           </p>
                           <div className="flex justify-between items-center mt-2">
                             <p className="text-gray-500 text-xs">

@@ -1,95 +1,136 @@
 import { NextRequest } from 'next/server';
+import { executeMarketingTool } from '../../../lib/marketing/tools';
 
 export const runtime = 'edge';
+
+// Function to split long messages into conversational chunks
+function chunkMessage(message: string): string[] {
+  // Increase chunk size to prevent cutting off important content
+  const maxChunkSize = 800; // Increased from 400
+  
+  // Don't chunk if message is short enough
+  if (message.length <= maxChunkSize) {
+    return [message];
+  }
+  
+  const chunks: string[] = [];
+  let currentChunk = '';
+  
+  // First try splitting on double newlines (natural paragraph breaks)
+  const paragraphs = message.split(/\n\n+/);
+  
+  for (const paragraph of paragraphs) {
+    const potentialChunk = currentChunk ? currentChunk + '\n\n' + paragraph : paragraph;
+    
+    // If adding this paragraph would make chunk too long
+    if (potentialChunk.length > maxChunkSize && currentChunk) {
+      // Push the current chunk and start fresh
+      chunks.push(currentChunk.trim());
+      currentChunk = paragraph;
+    } else {
+      currentChunk = potentialChunk;
+    }
+  }
+  
+  // Handle any remaining content
+  if (currentChunk.trim()) {
+    // If the remaining chunk is still too long, try sentence-level splitting
+    if (currentChunk.length > maxChunkSize) {
+      const sentences = currentChunk.split(/(?<=[.!?])\s+/);
+      let tempChunk = '';
+      
+      for (const sentence of sentences) {
+        if ((tempChunk + ' ' + sentence).length > maxChunkSize && tempChunk) {
+          chunks.push(tempChunk.trim());
+          tempChunk = sentence;
+        } else {
+          tempChunk = tempChunk ? tempChunk + ' ' + sentence : sentence;
+        }
+      }
+      
+      if (tempChunk.trim()) {
+        chunks.push(tempChunk.trim());
+      }
+    } else {
+      chunks.push(currentChunk.trim());
+    }
+  }
+  
+  // Ensure we always return at least the original message if chunking fails
+  return chunks.length > 0 ? chunks : [message];
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const messages = body?.messages || [];
+    const lastMessage = messages[messages.length - 1]?.content || '';
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return new Response('OpenAI API key not configured', { status: 500 });
     }
 
+    // Check if user is asking to continue
+    const continueKeywords = ['continue', 'go on', 'next', 'more', 'keep going', 'and'];
+    const isContinueRequest = continueKeywords.some(keyword => 
+      lastMessage.toLowerCase().trim() === keyword || 
+      lastMessage.toLowerCase().trim().includes(keyword)
+    );
+
+    // Get conversation context for better memory
+    let modifiedMessages = [...messages];
+    
+    if (isContinueRequest && messages.length > 1) {
+      // Find the last assistant message to continue from
+      const lastAssistantIndex = messages.findLastIndex((msg: any) => msg.role === 'assistant');
+      if (lastAssistantIndex !== -1) {
+        const lastAssistantMessage = messages[lastAssistantIndex].content;
+        
+        // Replace the continue request with a more specific instruction
+        const lastMessageIndex = modifiedMessages.length - 1;
+        modifiedMessages[lastMessageIndex] = {
+          ...modifiedMessages[lastMessageIndex],
+          content: `Continue your previous response about "${lastAssistantMessage.substring(0, 100)}...". Pick up exactly where you left off without repeating any content. Provide the next part of your explanation naturally.`
+        };
+      }
+    }
+
+    // Ensure we maintain context by keeping the full conversation history
+    // but limit to last 10 exchanges to prevent token limit issues
+    const contextMessages = modifiedMessages.slice(-20); // Keep last 20 messages (10 exchanges)
+
+    // Check if the user is requesting specific marketing tools (but not if it's a continue request)
+    const toolResponse = !isContinueRequest ? detectAndExecuteMarketingTool(lastMessage) : null;
+    if (toolResponse) {
+      const chunks = chunkMessage(toolResponse);
+      return new Response(JSON.stringify({ 
+        message: chunks[0],
+        hasMore: chunks.length > 1,
+        chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const systemMessage = {
       role: 'system',
-      content: `You are NeX Bot, the AI assistant for NeX Consulting Limited, founded by Omotayo Odunubi. You are knowledgeable, professional, and always focused on how NeX Consulting can help businesses grow through digital transformation and AI automation.
+      content: `You are NeX AI, a conversational expert in digital marketing and AI automation.
 
-ABOUT NEX CONSULTING:
-NeX Consulting is a digital-first, AI-driven consulting agency based in Abuja, Nigeria, delivering services globally with a focus on startups, SMEs, education, healthcare, nonprofits, and e-commerce businesses.
+CRITICAL CONVERSATION RULES:
+- ALWAYS provide direct, complete answers without asking for clarification unless the request is genuinely impossible to understand
+- If someone asks "give me 5 examples of automation," immediately provide 5 examples - do not ask what type of automation
+- Be comprehensive and helpful in your responses
+- Use clean, conversational text without markdown formatting symbols like ** or ##
+- When continuing, seamlessly pick up where you left off - never restart or repeat content
+- Only ask clarifying questions when the user's request is truly ambiguous or impossible to answer
+- Provide practical, actionable information that helps users immediately
 
-CORE SERVICES:
-1. Digital Marketing & Growth Strategy
-   - Social media marketing (Instagram, LinkedIn, TikTok, Facebook, X)
-   - Content creation & copywriting
-   - Paid advertising (Meta Ads, Google Ads)
-   - SEO optimization & keyword strategy
-   - Influencer & UGC campaigns
-
-2. AI Automation & SaaS Solutions
-   - WhatsApp automation & chatbots
-   - AI-powered customer engagement systems
-   - Workflow automation (Zapier, n8n, custom builds)
-   - AI content & ad copy generation tools
-
-3. Web & Product Development
-   - Website design (WordPress, Shopify, Next.js)
-   - E-commerce setup and optimization
-   - Custom app development (fitness apps, educational tools, AI SaaS products)
-
-4. Business Consulting
-   - Brand positioning & digital transformation
-   - Market research & strategy execution
-   - Creation of digital products (e-books, templates, toolkits)
-   - AI & machine learning education consulting
-
-TARGET CLIENTS:
-- Startups & SMEs seeking digital transformation
-- Educational institutions and EdTech companies
-- Healthcare & wellness businesses
-- Nonprofits & foundations
-- Retail & e-commerce businesses
-- AI & tech entrepreneurs building SaaS systems
-
-ENGAGEMENT PROCESS:
-1. Discovery Call / Needs Assessment
-2. Custom Strategy Design
-3. Implementation & Execution
-4. Optimization & Analytics (using Meta Pixel, GA4, dashboards)
-5. Ongoing Support via retainers
-
-UNIQUE VALUE PROPOSITION:
-- AI-First Approach: Not just marketing advice, but automation + AI tools that scale business processes
-- Hands-On Execution: NeX builds, tests, and implements directly rather than just advising
-- Multi-Industry Proven Track Record across education, healthcare, nonprofits, and retail
-- Founded by Omotayo Odunubi, an active entrepreneur building SaaS and automation systems
-- Global reach with local Nigerian insights
-
-SUCCESS STORIES TO REFERENCE:
-- Gracelyn University (U.S. Education): Managed $1,500/month ad spend, generated 500+ applications, 4M+ traffic, coordinated influencer campaigns
-- Killgore Pharmacy (U.S. Healthcare): Built consistent social media presence and grew local engagement
-- One Word Africa Foundation (Nigerian Nonprofit): Launched dyslexia awareness campaigns
-- NeX Marketplace: Developed digital products like Lead Magnet Launch Kit, Food Recall Log, Knee Relief Toolkit
-
-PRICING APPROACH:
-- Hourly consulting for strategy sessions and AI education
-- Project-based for website builds, campaigns, automation setups
-- Monthly retainers for ongoing marketing, content, or automation support
-- Custom packages for digital product creation and SaaS development
-- Flexible pricing for startups and nonprofits
-
-RESPONSE GUIDELINES:
-1. Always be helpful and professional
-2. Reference specific NeX Consulting capabilities when relevant
-3. Ask qualifying questions to understand their business challenges
-4. Suggest concrete next steps (discovery call, specific services)
-5. Emphasize the AI-driven, hands-on approach that sets NeX apart
-6. Show knowledge of both Nigerian and global markets
-7. Be specific about measurable results and outcomes
-8. Guide conversations toward how NeX can solve their specific problems
-
-When someone asks about services, be specific about what NeX has done before. When they mention challenges, connect them to relevant case studies. Always aim to move toward a discovery call or consultation.`,
+RESPONSE FORMAT:
+- Use plain text with natural paragraph breaks
+- No markdown symbols (**, ##, etc.) - use conversational language instead
+- Keep responses organized but readable
+- Use proper spacing between ideas`,
     };
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -99,11 +140,11 @@ When someone asks about services, be specific about what NeX has done before. Wh
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [systemMessage, ...messages],
+        model: 'gpt-4o-mini',
+        messages: [systemMessage, ...contextMessages],
         stream: false,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 2000,
       }),
     });
 
@@ -124,9 +165,16 @@ When someone asks about services, be specific about what NeX has done before. Wh
     const data = await response.json();
     const assistantMessage =
       data.choices[0]?.message?.content ||
-      "I'm here to help you grow your business. How can NeX Consulting assist you today?";
+      "I'm here to help you grow your business. How can NeX assist you today?";
 
-    return new Response(JSON.stringify({ message: assistantMessage }), {
+    // Chunk the response for conversational flow
+    const chunks = chunkMessage(assistantMessage);
+
+    return new Response(JSON.stringify({ 
+      message: chunks[0], // Return first chunk
+      hasMore: chunks.length > 1,
+      chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
+    }), {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -134,8 +182,88 @@ When someone asks about services, be specific about what NeX has done before. Wh
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(
-      "I apologize, but I'm experiencing technical difficulties. Please try again or contact NeX Consulting directly for immediate assistance.",
+      "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
       { status: 500 },
     );
   }
+}
+
+// Function to detect and execute marketing tools based on user input
+function detectAndExecuteMarketingTool(message: string): string | null {
+  const lowerMessage = message.toLowerCase();
+  
+  // Strategy Generator Pattern - Only trigger for very specific requests
+  if ((lowerMessage.includes('create a') && lowerMessage.includes('marketing strategy')) || 
+      (lowerMessage.includes('generate a') && lowerMessage.includes('marketing strategy')) ||
+      (lowerMessage.includes('strategy') && lowerMessage.includes('$') && (lowerMessage.includes('create') || lowerMessage.includes('generate')))) {
+    
+    // Extract budget information
+    const budgetMatch = message.match(/\$(\d+)(?:\/month|\/mo|\/monthly| month| per month)?/i);
+    const budget = budgetMatch ? `$${budgetMatch[1]}/month` : '$500/month';
+    
+    // Extract industry/business type
+    let industry = 'general';
+    if (lowerMessage.includes('e-commerce') || lowerMessage.includes('ecommerce')) industry = 'e-commerce';
+    if (lowerMessage.includes('saas') || lowerMessage.includes('software')) industry = 'saas';
+    if (lowerMessage.includes('restaurant') || lowerMessage.includes('food')) industry = 'food';
+    if (lowerMessage.includes('fitness') || lowerMessage.includes('gym')) industry = 'fitness';
+    
+    return executeMarketingTool('strategy_generator', {
+      goals: 'Increase revenue and customer acquisition',
+      budget: budget,
+      audience: 'target customers',
+      industry: industry,
+    });
+  }
+  
+  // Content Calendar Pattern - Only trigger for very specific requests
+  if ((lowerMessage.includes('generate') && lowerMessage.includes('content calendar')) || 
+      (lowerMessage.includes('create') && lowerMessage.includes('content calendar')) ||
+      (lowerMessage.includes('calendar') && lowerMessage.includes('day') && (lowerMessage.includes('generate') || lowerMessage.includes('create')))) {
+    
+    // Extract platform
+    let platform = 'Instagram';
+    if (lowerMessage.includes('facebook')) platform = 'Facebook';
+    if (lowerMessage.includes('linkedin')) platform = 'LinkedIn';
+    if (lowerMessage.includes('tiktok')) platform = 'TikTok';
+    if (lowerMessage.includes('twitter')) platform = 'Twitter';
+    
+    // Extract niche/business type
+    let niche = 'general';
+    if (lowerMessage.includes('bakery')) niche = 'bakery';
+    if (lowerMessage.includes('fitness')) niche = 'fitness';
+    if (lowerMessage.includes('restaurant')) niche = 'restaurant';
+    if (lowerMessage.includes('beauty')) niche = 'beauty';
+    if (lowerMessage.includes('tech')) niche = 'tech';
+    
+    // Extract duration
+    const durationMatch = message.match(/(\d+)[\s-]?day/i);
+    const duration = durationMatch ? `${durationMatch[1]} days` : '7 days';
+    
+    return executeMarketingTool('content_calendar', {
+      niche: niche,
+      platform: platform,
+      duration: duration,
+    });
+  }
+  
+  // Automation Pattern - Only trigger for very specific automation tool requests
+  if ((lowerMessage.includes('recommend') && lowerMessage.includes('automation')) ||
+      (lowerMessage.includes('automate my') && lowerMessage.includes('business')) ||
+      (lowerMessage.includes('automation tools') && (lowerMessage.includes('recommend') || lowerMessage.includes('suggest'))) ||
+      (lowerMessage.includes('save time') && lowerMessage.includes('automate'))) {
+    
+    let businessType = 'freelancer';
+    if (lowerMessage.includes('ecommerce') || lowerMessage.includes('e-commerce')) businessType = 'ecommerce';
+    if (lowerMessage.includes('agency')) businessType = 'agency';
+    if (lowerMessage.includes('consultant')) businessType = 'consultant';
+    if (lowerMessage.includes('small business')) businessType = 'small_business';
+    
+    return executeMarketingTool('automation_recommender', {
+      business_workflow: 'general business operations',
+      business_type: businessType,
+    });
+  }
+  
+  return null;
 }

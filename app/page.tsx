@@ -39,7 +39,11 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: currentInput }]
+          messages: messages.map(msg => ({
+            role: msg.isBot ? 'assistant' : 'user',
+            content: msg.text
+          })).concat([{ role: 'user', content: currentInput }]),
+          conversationId: Date.now().toString()
         }),
       });
       
@@ -242,7 +246,7 @@ export default function ChatPage() {
         <div className="flex-1 flex">
           {/* Messages Area */}
           <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto pb-32">
               <div className="max-w-4xl mx-auto">
                 {/* Welcome Message - Centered */}
                 {messages.length === 1 && (
@@ -329,8 +333,8 @@ export default function ChatPage() {
               </div>
             </div>
             
-            {/* Input Area */}
-            <div className="p-6 bg-gray-900/50 backdrop-blur-sm border-t border-gray-800/50">
+            {/* Input Area - Fixed at bottom */}
+            <div className="fixed bottom-0 left-0 w-full bg-gray-900/95 backdrop-blur-sm border-t border-gray-800/50 p-6">
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center gap-3 bg-gray-800/80 backdrop-blur-sm rounded-2xl p-3 border border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
                   <div className="flex-1 relative">
@@ -341,7 +345,7 @@ export default function ChatPage() {
                       onKeyDown={e => e.key === "Enter" && sendMessage()}
                       disabled={isLoading}
                       className="w-full bg-transparent text-white placeholder:text-gray-400 px-4 py-3 focus:outline-none text-sm"
-                      placeholder="Ask me anything..."
+                      placeholder="Ask NeX AI anything..."
                     />
                   </div>
                   
