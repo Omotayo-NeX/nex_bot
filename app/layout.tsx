@@ -4,6 +4,11 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'NeX Bot - AI Assistant',
   description: 'Your intelligent AI assistant for digital marketing and automation',
+  icons: {
+    icon: '/Nex_logomark_white.png',
+    shortcut: '/Nex_logomark_white.png',
+    apple: '/Nex_logomark_white.png',
+  },
 }
 
 export default function RootLayout({

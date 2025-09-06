@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 
 // Type definitions for provider responses
 interface ImageGenerationResponse {
@@ -144,11 +145,26 @@ async function generateWithStability(prompt: string, apiKey: string): Promise<Im
 
 export async function POST(req: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIP = getClientIP(req);
+    
+    // Check rate limits
+    const rateLimit = await checkRateLimit(clientIP);
+    if (!rateLimit.success) {
+      console.log(`🚫 [Image API] Rate limit exceeded for ${clientIP}: ${rateLimit.error}`);
+      return NextResponse.json({
+        error: rateLimit.error,
+        isRateLimit: true,
+        type: rateLimit.type,
+        reset: rateLimit.reset instanceof Date ? rateLimit.reset.toISOString() : rateLimit.reset,
+      }, { status: 429 });
+    }
+
     const { prompt } = await req.json();
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
-        { error: 'Prompt is required and must be a string' },
+        { error: 'Prompt is required and must be a string', isError: true },
         { status: 400 }
       );
     }
@@ -162,7 +178,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { 
           error: '⚠️ No image generation provider configured. Please set GEMINI_API_KEY, OPENAI_API_KEY, or STABILITY_API_KEY in your environment variables.',
-          availableProviders: ['gemini', 'openai', 'stability']
+          availableProviders: ['gemini', 'openai', 'stability'],
+          isError: true
         },
         { status: 500 }
       );
@@ -192,7 +209,7 @@ export async function POST(req: NextRequest) {
     if ('error' in result) {
       console.error(`❌ [${result.provider.toUpperCase()}] Image generation failed:`, result.error);
       return NextResponse.json(
-        { error: result.error, provider: result.provider },
+        { error: result.error, provider: result.provider, isError: true },
         { status: 500 }
       );
     }
@@ -204,7 +221,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('💥 [Image Generation] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred during image generation. Please try again.' },
+      { error: 'An unexpected error occurred during image generation. Please try again.', isError: true },
       { status: 500 }
     );
   }

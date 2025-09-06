@@ -5,6 +5,15 @@ function cn(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+// Function to check if a message is an error or rate limit
+function isErrorMessage(content: string): boolean {
+  return content.includes('⚠️') || 
+         content.includes('Rate limit') || 
+         content.includes('Daily limit') ||
+         content.includes('error') ||
+         content.includes('Error');
+}
+
 // Function to format messages as clean text with natural styling
 function formatMessage(content: string): React.JSX.Element {
   // Split content into paragraphs with better spacing handling
@@ -168,11 +177,18 @@ export default function ChatPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
+
+      // Handle rate limiting or other structured errors
+      if (!response.ok || data.isRateLimit || data.isError) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.message || data.error || 'An error occurred. Please try again.',
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+        return;
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -255,11 +271,21 @@ export default function ChatPage() {
                 'max-w-4xl px-6 py-4 rounded-xl',
                 message.role === 'user'
                   ? 'bg-blue-600 text-white'
+                  : isErrorMessage(message.content)
+                  ? 'bg-red-900/50 text-red-100 border border-red-600/30'
                   : 'bg-gray-800 text-gray-100',
               )}
             >
               {message.role === 'assistant' ? (
-                formatMessage(message.content)
+                <>
+                  {isErrorMessage(message.content) && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-red-400 text-lg">⚠️</span>
+                      <span className="text-red-300 font-medium text-sm">System Notice</span>
+                    </div>
+                  )}
+                  {formatMessage(message.content)}
+                </>
               ) : (
                 <p className="text-white leading-relaxed whitespace-pre-line">{message.content}</p>
               )}

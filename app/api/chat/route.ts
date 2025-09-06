@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { executeMarketingTool } from '../../../lib/marketing/tools';
+import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 
 export const runtime = 'edge';
 
@@ -62,13 +63,37 @@ function chunkMessage(message: string): string[] {
 
 export async function POST(req: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIP = getClientIP(req);
+    
+    // Check rate limits
+    const rateLimit = await checkRateLimit(clientIP);
+    if (!rateLimit.success) {
+      console.log(`🚫 [Chat API] Rate limit exceeded for ${clientIP}: ${rateLimit.error}`);
+      return new Response(JSON.stringify({ 
+        message: rateLimit.error,
+        isRateLimit: true,
+        type: rateLimit.type,
+        reset: rateLimit.reset instanceof Date ? rateLimit.reset.toISOString() : rateLimit.reset,
+      }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     const messages = body?.messages || [];
     const lastMessage = messages[messages.length - 1]?.content || '';
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return new Response('OpenAI API key not configured', { status: 500 });
+      return new Response(JSON.stringify({
+        message: 'OpenAI API key not configured',
+        isError: true,
+      }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if user is asking to continue
@@ -181,10 +206,13 @@ RESPONSE FORMAT:
     });
   } catch (error) {
     console.error('Chat API error:', error);
-    return new Response(
-      "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
-      { status: 500 },
-    );
+    return new Response(JSON.stringify({
+      message: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
+      isError: true,
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 

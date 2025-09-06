@@ -3,6 +3,15 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+// Function to check if a message is an error or rate limit
+function isErrorMessage(text: string): boolean {
+  return text.includes('⚠️') || 
+         text.includes('Rate limit') || 
+         text.includes('Daily limit') ||
+         text.includes('error') ||
+         text.includes('Error');
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState([
     { id: 1, text: "Hello! I'm NeX AI, your intelligent assistant. What would you like to explore today?", isBot: true }
@@ -47,16 +56,18 @@ export default function ChatPage() {
         }),
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+      
+      // Handle rate limiting or other structured errors
+      if (!response.ok || data.isRateLimit || data.isError) {
         setMessages(prev => [
           ...prev,
-          { id: Date.now() + 1, text: data.message, isBot: true }
+          { id: Date.now() + 1, text: data.message || data.error || "Sorry, I'm having trouble responding right now.", isBot: true }
         ]);
       } else {
         setMessages(prev => [
           ...prev,
-          { id: Date.now() + 1, text: "Sorry, I'm having trouble responding right now.", isBot: true }
+          { id: Date.now() + 1, text: data.message, isBot: true }
         ]);
       }
     } catch (error) {
@@ -280,7 +291,9 @@ export default function ChatPage() {
                     >
                       <div className={`max-w-xs sm:max-w-md lg:max-w-2xl px-6 py-4 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl ${
                         msg.isBot
-                          ? "bg-gray-800/80 border border-gray-700/50 text-gray-100 rounded-bl-sm backdrop-blur-sm hover:bg-gray-800/90"
+                          ? isErrorMessage(msg.text)
+                            ? "bg-red-900/50 text-red-100 border border-red-600/30 rounded-bl-sm backdrop-blur-sm"
+                            : "bg-gray-800/80 border border-gray-700/50 text-gray-100 rounded-bl-sm backdrop-blur-sm hover:bg-gray-800/90"
                           : "bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 text-white rounded-br-sm shadow-blue-500/25 hover:shadow-blue-500/40"
                       }`}>
                         {msg.isBot && (
@@ -293,7 +306,16 @@ export default function ChatPage() {
                                 className="object-contain rounded-full"
                               />
                             </div>
-                            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">NeX AI</span>
+                            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                              {isErrorMessage(msg.text) ? (
+                                <span className="text-red-300 flex items-center gap-1">
+                                  <span className="text-red-400">⚠️</span>
+                                  System Notice
+                                </span>
+                              ) : (
+                                'NeX AI'
+                              )}
+                            </span>
                           </div>
                         )}
                         <p className="text-sm leading-relaxed">{msg.text}</p>
