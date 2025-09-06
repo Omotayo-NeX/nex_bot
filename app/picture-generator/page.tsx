@@ -105,9 +105,11 @@ export default function PictureGenerator() {
     if (!imageUrl) return;
 
     const filename = createSafeFilename(promptText);
+    console.log('🔄 Starting download for:', filename);
 
     try {
       // Use server-side download API for better CORS handling
+      console.log('📤 Calling download API...');
       const response = await fetch('/api/download-image', {
         method: 'POST',
         headers: {
@@ -120,47 +122,112 @@ export default function PictureGenerator() {
       });
 
       const data = await response.json();
+      console.log('📥 API Response:', { success: data.success, hasDataUrl: !!data.dataUrl, filename: data.filename });
 
-      if (response.ok && data.success) {
-        // Create download link from the server-provided data URL
-        const link = document.createElement('a');
-        link.href = data.dataUrl;
-        link.download = data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('✅ Image downloaded successfully:', data.filename);
+      if (response.ok && data.success && data.dataUrl) {
+        try {
+          // Convert data URL to Blob for better browser compatibility
+          const [header, base64Data] = data.dataUrl.split(',');
+          const mimeType = header.match(/:(.*?);/)?.[1] || 'image/png';
+          
+          // Convert base64 to bytes
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          
+          // Create blob and object URL
+          const blob = new Blob([byteArray], { type: mimeType });
+          const objectUrl = URL.createObjectURL(blob);
+          
+          // Create download link
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = data.filename || `nex-${filename}.png`;
+          link.style.display = 'none';
+          
+          // Add to DOM, click, then cleanup
+          document.body.appendChild(link);
+          link.offsetHeight; // Force reflow
+          link.click();
+          
+          // Cleanup after download
+          setTimeout(() => {
+            if (link.parentNode) {
+              document.body.removeChild(link);
+            }
+            URL.revokeObjectURL(objectUrl);
+          }, 100);
+          
+          console.log('✅ Image downloaded successfully via Blob:', data.filename);
+          return;
+        } catch (blobError) {
+          console.error('❌ Blob download failed, trying data URL fallback:', blobError);
+          
+          // Fallback to data URL method
+          const link = document.createElement('a');
+          link.href = data.dataUrl;
+          link.download = data.filename || `nex-${filename}.png`;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.offsetHeight;
+          link.click();
+          
+          setTimeout(() => {
+            if (link.parentNode) {
+              document.body.removeChild(link);
+            }
+          }, 100);
+          
+          console.log('✅ Image downloaded via data URL fallback:', data.filename);
+          return;
+        }
       } else {
-        throw new Error(data.error || 'Failed to process download');
+        throw new Error(data.error || 'API returned no data URL');
       }
     } catch (error) {
-      console.error('Error downloading image:', error);
+      console.error('❌ Download API failed:', error);
       
       // Fallback: try direct download for data URLs
       if (imageUrl.startsWith('data:')) {
+        console.log('🔄 Trying direct data URL download...');
         try {
           const link = document.createElement('a');
           link.href = imageUrl;
           link.download = `nex-${filename}.png`;
+          link.style.display = 'none';
+          
           document.body.appendChild(link);
+          link.offsetHeight; // Force reflow
           link.click();
-          document.body.removeChild(link);
+          
+          setTimeout(() => {
+            if (link.parentNode) {
+              document.body.removeChild(link);
+            }
+          }, 100);
+          
+          console.log('✅ Direct download successful');
           return;
         } catch (directError) {
-          console.error('Direct download also failed:', directError);
+          console.error('❌ Direct download also failed:', directError);
         }
       }
       
-      // Final fallback: try to open in new tab
+      // Final fallback: open in new window
+      console.log('🔄 Trying fallback: open in new window...');
       try {
         const newWindow = window.open(imageUrl, '_blank');
         if (!newWindow) {
           setError('Failed to download image. Please allow popups or right-click the image to save it manually.');
         } else {
-          setError('Download failed. Please right-click the image in the new tab and select "Save Image As..." to download manually.');
+          console.log('✅ Opened in new window - user can save manually');
         }
       } catch (fallbackError) {
+        console.error('❌ All download methods failed:', fallbackError);
         setError('Failed to download image. Please right-click the image and select "Save Image As..." to download manually.');
       }
     }
