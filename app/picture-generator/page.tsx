@@ -18,6 +18,8 @@ export default function PictureGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageHistory, setImageHistory] = useState<ImageHistory[]>([]);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'generate' | 'upload'>('generate');
 
   // Load history from localStorage on component mount
   useEffect(() => {
@@ -102,21 +104,65 @@ export default function PictureGenerator() {
   const downloadImage = async (imageUrl: string, promptText: string) => {
     if (!imageUrl) return;
 
+    const filename = createSafeFilename(promptText);
+
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const filename = createSafeFilename(promptText);
-      link.download = `nex-${filename}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Use server-side download API for better CORS handling
+      const response = await fetch('/api/download-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+          filename: `nex-${filename}.png`
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Create download link from the server-provided data URL
+        const link = document.createElement('a');
+        link.href = data.dataUrl;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('✅ Image downloaded successfully:', data.filename);
+      } else {
+        throw new Error(data.error || 'Failed to process download');
+      }
     } catch (error) {
       console.error('Error downloading image:', error);
-      setError('Failed to download image. Please try again.');
+      
+      // Fallback: try direct download for data URLs
+      if (imageUrl.startsWith('data:')) {
+        try {
+          const link = document.createElement('a');
+          link.href = imageUrl;
+          link.download = `nex-${filename}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return;
+        } catch (directError) {
+          console.error('Direct download also failed:', directError);
+        }
+      }
+      
+      // Final fallback: try to open in new tab
+      try {
+        const newWindow = window.open(imageUrl, '_blank');
+        if (!newWindow) {
+          setError('Failed to download image. Please allow popups or right-click the image to save it manually.');
+        } else {
+          setError('Download failed. Please right-click the image in the new tab and select "Save Image As..." to download manually.');
+        }
+      } catch (fallbackError) {
+        setError('Failed to download image. Please right-click the image and select "Save Image As..." to download manually.');
+      }
     }
   };
 
@@ -124,6 +170,45 @@ export default function PictureGenerator() {
     setImageHistory([]);
     localStorage.removeItem('nex-image-history');
   };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file (PNG, JPG, JPEG, GIF, etc.)');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image file is too large. Please upload an image smaller than 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setUploadedImage(result);
+      setError(null);
+      
+      // Add to history
+      const newHistoryItem: ImageHistory = {
+        id: Date.now().toString(),
+        prompt: `Uploaded: ${file.name}`,
+        imageUrl: result,
+        timestamp: Date.now()
+      };
+      
+      setImageHistory(prev => [newHistoryItem, ...prev].slice(0, 20));
+    };
+    reader.onerror = () => {
+      setError('Failed to read the image file. Please try again.');
+    };
+    reader.readAsDataURL(file);
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black">
@@ -173,8 +258,46 @@ export default function PictureGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Generator Section */}
           <div className="lg:col-span-2">
-            {/* Input Section */}
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl mb-8">
+            {/* Tab Navigation */}
+            <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-700/50 shadow-xl mb-8">
+              <div className="flex border-b border-gray-700/50">
+                <button
+                  onClick={() => setActiveTab('generate')}
+                  className={`flex-1 px-6 py-4 font-medium transition-all duration-200 ${
+                    activeTab === 'generate'
+                      ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-2xl'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                    </svg>
+                    <span>Generate Image</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`flex-1 px-6 py-4 font-medium transition-all duration-200 ${
+                    activeTab === 'upload'
+                      ? 'text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-2xl'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>Upload Image</span>
+                  </div>
+                </button>
+              </div>
+              
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === 'generate' ? (
+                  /* Generate Tab Content */
+                  <div>
               <div className="mb-6">
                 <label htmlFor="prompt" className="block text-lg font-semibold text-white mb-3">
                   Describe the image you want to generate:
@@ -214,6 +337,38 @@ export default function PictureGenerator() {
                   </div>
                 )}
               </button>
+                  </div>
+                ) : (
+                  /* Upload Tab Content */
+                  <div>
+                    <div className="mb-6">
+                      <label htmlFor="imageUpload" className="block text-lg font-semibold text-white mb-3">
+                        Upload an image to view and download:
+                      </label>
+                      <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-gray-500 transition-colors">
+                        <input
+                          id="imageUpload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                        <label htmlFor="imageUpload" className="cursor-pointer">
+                          <div className="flex flex-col items-center space-y-4">
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <div>
+                              <p className="text-lg text-white font-medium">Click to upload image</p>
+                              <p className="text-gray-400 text-sm mt-1">Supports PNG, JPG, JPEG, GIF (max 10MB)</p>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Error Display */}
@@ -228,8 +383,48 @@ export default function PictureGenerator() {
               </div>
             )}
 
+            {/* Uploaded Image Display */}
+            {uploadedImage && activeTab === 'upload' && (
+              <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl animate-fadeIn mb-8">
+                <h2 className="text-xl font-bold text-white mb-4">Uploaded Image:</h2>
+                <div className="relative rounded-xl overflow-hidden shadow-2xl">
+                  <img
+                    src={uploadedImage}
+                    alt="Uploaded image"
+                    className="w-full h-auto max-h-[600px] object-contain bg-gray-900"
+                  />
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="mt-4 flex gap-3 flex-wrap">
+                  <button
+                    onClick={() => downloadImage(uploadedImage!, 'uploaded-image')}
+                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Download</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setUploadedImage(null);
+                      setError(null);
+                    }}
+                    className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Remove Image</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Generated Image Display */}
-            {generatedImage && (
+            {generatedImage && activeTab === 'generate' && (
               <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-xl animate-fadeIn">
                 <h2 className="text-xl font-bold text-white mb-4">Generated Image:</h2>
                 <div className="relative rounded-xl overflow-hidden shadow-2xl">
