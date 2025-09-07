@@ -290,8 +290,8 @@ export default function ChatPage() {
                 <span className="font-semibold">NeX AI</span>
               </div>
               <p className="text-gray-300">
-                Hi! I&apos;m NeX AI, your conversational expert in digital marketing & AI automation. 
-                I can help you create strategies, content calendars, automation workflows, and more! 💬
+                Hi! I&apos;m NeX AI, developed by Nex Consulting Limited in Abuja. I&apos;m your conversational expert in digital marketing & AI automation. 
+                I can help you create strategies, content calendars, automation workflows, and more! For advanced business consultation, visit nexconsultingltd.com 💬
               </p>
             </div>
           </div>
