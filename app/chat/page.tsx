@@ -280,7 +280,7 @@ export default function ChatPage() {
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-32"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 chat-body"
       >
         {messages.length === 0 && (
           <div className="flex justify-start">
@@ -357,8 +357,8 @@ export default function ChatPage() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-700 p-4">
-        <div className="max-w-4xl mx-auto flex gap-3">
+      <div className="chat-input-container">
+        <div className="flex gap-3 w-full">
           <input
             type="text"
             value={input}
