@@ -2,6 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+// Rolling 24-hour rate limiting (10 requests per user per 24-hour window)
+let requestLog: Record<string, number[]> = {};
+
+function getClientIP(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const realIP = req.headers.get('x-real-ip');
+  const remoteAddress = forwarded?.split(',')[0].trim() || realIP || 'unknown';
+  return remoteAddress;
+}
+
+function checkRateLimit(clientIP: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const maxRequests = 10;
+
+  // Initialize user's request log if it doesn't exist
+  if (!requestLog[clientIP]) {
+    requestLog[clientIP] = [];
+  }
+
+  // Filter out requests older than 24 hours (rolling window)
+  requestLog[clientIP] = requestLog[clientIP].filter(timestamp => {
+    return now - timestamp < twentyFourHours;
+  });
+
+  const currentRequests = requestLog[clientIP].length;
+  const remaining = Math.max(0, maxRequests - currentRequests);
+
+  // Check if user has exceeded the limit
+  if (currentRequests >= maxRequests) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  // Log this request
+  requestLog[clientIP].push(now);
+  
+  return { allowed: true, remaining: remaining - 1 };
+}
+
 // Voice ID mappings for ElevenLabs voices
 const VOICE_IDS = {
   'Rachel': '21m00Tcm4TlvDq8ikWAM',
@@ -14,6 +53,17 @@ const VOICE_IDS = {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check rate limit first
+    const clientIP = getClientIP(req);
+    const rateLimit = checkRateLimit(clientIP);
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Daily limit of 10 voice generations reached (24h rolling window)' },
+        { status: 429 }
+      );
+    }
+
     const { text, voice = 'Rachel' } = await req.json();
 
     if (!text || typeof text !== 'string') {

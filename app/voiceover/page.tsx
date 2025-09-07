@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Volume2, Download, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Volume2, Download, Play, Pause, Mic, MicOff } from 'lucide-react';
 
 export default function VoiceOverPage() {
   const [text, setText] = useState('');
@@ -11,6 +11,8 @@ export default function VoiceOverPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
   // Available ElevenLabs voices
   const voices = [
@@ -98,6 +100,51 @@ export default function VoiceOverPage() {
     }
   };
 
+  const startRecording = () => {
+    // Check if Speech Recognition is supported
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const newRecognition = new SpeechRecognition();
+    newRecognition.lang = 'en-US';
+    newRecognition.continuous = false;
+    newRecognition.interimResults = false;
+
+    newRecognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    newRecognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setText(transcript);
+      setIsRecording(false);
+    };
+
+    newRecognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+      alert('Speech recognition error: ' + event.error);
+    };
+
+    newRecognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    setRecognition(newRecognition);
+    newRecognition.start();
+  };
+
+  const stopRecording = () => {
+    if (recognition) {
+      recognition.stop();
+      setIsRecording(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white">
       {/* Header */}
@@ -154,7 +201,40 @@ export default function VoiceOverPage() {
 
           {/* Text Input */}
           <div className="mb-6">
-            <label className="block text-white font-semibold mb-3">Enter Text</label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-white font-semibold">Enter Text</label>
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isGenerating}
+                className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isRecording 
+                    ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
+                    : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
+                } text-white`}
+              >
+                {isRecording ? (
+                  <>
+                    <MicOff className="w-4 h-4" />
+                    Stop Recording
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4" />
+                    🎙️ Speak
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {isRecording && (
+              <div className="mb-3 p-3 bg-red-900/20 border border-red-600/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-red-300 text-sm font-medium">Listening... Speak now!</span>
+                </div>
+              </div>
+            )}
+            
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -213,6 +293,7 @@ export default function VoiceOverPage() {
           {/* Sample Texts */}
           <div className="mt-8 p-6 bg-gray-800/50 rounded-xl border border-gray-700/30">
             <h3 className="text-white font-semibold mb-4">Sample Texts</h3>
+            <p className="text-gray-400 text-sm mb-4">💡 Pro tip: Use the microphone button above to speak your text instead of typing!</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => setText("Welcome to NeX AI, your intelligent assistant powered by advanced artificial intelligence. We're here to help you with digital marketing, automation, and creative solutions.")}
