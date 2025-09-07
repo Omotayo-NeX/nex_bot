@@ -130,22 +130,25 @@ export default function ChatPage() {
           {/* Feature Buttons */}
           <div className="px-6 py-4 border-b border-gray-800/50">
             <div className="space-y-3">
-              {/* AI Voice App */}
-              <button className="w-full group relative overflow-hidden bg-gradient-to-r from-gray-800 to-gray-700 hover:from-blue-900/50 hover:to-purple-900/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+              {/* AI VoiceOver */}
+              <Link
+                href="/voiceover"
+                className="w-full group relative overflow-hidden bg-gradient-to-r from-gray-800 to-gray-700 hover:from-blue-900/50 hover:to-purple-900/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl block"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M9 5L5 9H3a2 2 0 00-2 2v2a2 2 0 002 2h2l4 4V5z" />
                     </svg>
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-white font-semibold">AI Voice Chat</div>
-                    <div className="text-gray-400 text-sm">Talk naturally with NeX</div>
+                    <div className="text-white font-semibold">AI VoiceOver</div>
+                    <div className="text-gray-400 text-sm">Convert your text into voice</div>
                   </div>
-                  <span className="text-xs bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full font-medium">Soon</span>
+                  <span className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium animate-pulse">New</span>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
+              </Link>
 
               {/* Picture Generator */}
               <Link
