@@ -177,3 +177,23 @@
 .animate-fadeIn {
     animation: fadeIn 0.3s ease-out;
 }
+
+@keyframes fadeOut {
+    0% { 
+        opacity: 1; 
+    }
+    80% { 
+        opacity: 1; 
+    }
+    100% { 
+        opacity: 0; 
+        height: 0; 
+        margin: 0; 
+        padding: 0; 
+        border: none;
+    }
+}
+
+.animate-fadeOut {
+    animation: fadeOut 6s forwards;
+}

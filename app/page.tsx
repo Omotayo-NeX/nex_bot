@@ -21,6 +21,8 @@ export default function ChatPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [activeRightTab, setActiveRightTab] = useState("Chat");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -77,6 +79,51 @@ export default function ChatPage() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const startRecording = () => {
+    // Check if Speech Recognition is supported
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const newRecognition = new SpeechRecognition();
+    newRecognition.lang = 'en-US';
+    newRecognition.continuous = false;
+    newRecognition.interimResults = false;
+
+    newRecognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    newRecognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsRecording(false);
+    };
+
+    newRecognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+      alert('Speech recognition error: ' + event.error);
+    };
+
+    newRecognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    setRecognition(newRecognition);
+    newRecognition.start();
+  };
+
+  const stopRecording = () => {
+    if (recognition) {
+      recognition.stop();
+      setIsRecording(false);
     }
   };
 
@@ -293,58 +340,53 @@ export default function ChatPage() {
                 )}
                 
                 {/* Chat Messages */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {messages.map((msg, index) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'} animate-fadeIn`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className={`max-w-xs sm:max-w-md lg:max-w-2xl px-6 py-4 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl ${
-                        msg.isBot
-                          ? isErrorMessage(msg.text)
-                            ? "bg-red-900/50 text-red-100 border border-red-600/30 rounded-bl-sm backdrop-blur-sm"
-                            : "bg-gray-800/80 border border-gray-700/50 text-gray-100 rounded-bl-sm backdrop-blur-sm hover:bg-gray-800/90"
-                          : "bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 text-white rounded-br-sm shadow-blue-500/25 hover:shadow-blue-500/40"
-                      }`}>
-                        {msg.isBot && (
-                          <div className="flex items-center mb-3">
-                            <div className="w-7 h-7 relative mr-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
-                              <Image 
-                                src="/Nex_logomark_white.png" 
-                                alt="NeX AI" 
-                                fill
-                                className="object-contain rounded-full"
-                              />
+                    <div key={msg.id} className="mb-4">
+                      {isErrorMessage(msg.text) && msg.isBot ? (
+                        <div className="p-4 bg-red-900/50 text-red-200 rounded-lg animate-fadeOut border border-red-600/30">
+                          <strong className="flex items-center gap-2">
+                            <span className="text-red-400">⚠️</span>
+                            SYSTEM NOTICE
+                          </strong>
+                          <p className="mt-2 text-sm">{msg.text}</p>
+                        </div>
+                      ) : msg.isBot ? (
+                        <div className="flex justify-start">
+                          <div className="p-4 bg-gray-800 text-white rounded-lg max-w-2xl shadow-lg">
+                            <div className="flex items-center mb-2">
+                              <div className="w-6 h-6 relative mr-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
+                                <Image 
+                                  src="/Nex_logomark_white.png" 
+                                  alt="NeX AI" 
+                                  fill
+                                  className="object-contain rounded-full"
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">NeX AI</span>
                             </div>
-                            <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                              {isErrorMessage(msg.text) ? (
-                                <span className="text-red-300 flex items-center gap-1">
-                                  <span className="text-red-400">⚠️</span>
-                                  System Notice
-                                </span>
-                              ) : (
-                                'NeX AI'
-                              )}
-                            </span>
+                            <p className="text-sm leading-relaxed">{msg.text}</p>
                           </div>
-                        )}
-                        <p className="text-sm leading-relaxed">{msg.text}</p>
-                        {!msg.isBot && (
-                          <div className="flex justify-end mt-2">
-                            <span className="text-xs text-white/70">You</span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end">
+                          <div className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg max-w-2xl shadow-lg">
+                            <p className="text-sm leading-relaxed">{msg.text}</p>
+                            <div className="flex justify-end mt-1">
+                              <span className="text-xs text-white/70">You</span>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                   
                   {/* Loading indicator */}
                   {isLoading && (
                     <div className="flex justify-start animate-fadeIn">
-                      <div className="bg-gray-800/80 border border-gray-700/50 text-gray-100 px-6 py-4 rounded-2xl rounded-bl-sm shadow-lg backdrop-blur-sm">
+                      <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
                         <div className="flex items-center space-x-3">
-                          <div className="w-7 h-7 relative rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
+                          <div className="w-6 h-6 relative rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
                             <Image 
                               src="/Nex_logomark_white.png" 
                               alt="NeX AI" 
@@ -385,17 +427,25 @@ export default function ChatPage() {
                   {/* Icon Buttons */}
                   <div className="flex items-center gap-2">
                     {/* Mic Button */}
-                    <button className="p-2 text-gray-400 hover:text-white transition-all duration-200 rounded-lg hover:bg-gray-700/50 hover:scale-105">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
-                    </button>
-                    
-                    {/* Image Upload Button */}
-                    <button className="p-2 text-gray-400 hover:text-white transition-all duration-200 rounded-lg hover:bg-gray-700/50 hover:scale-105">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                    <button 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={isLoading}
+                      className={`p-2 transition-all duration-200 rounded-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isRecording 
+                          ? 'text-red-400 bg-red-900/20 animate-pulse hover:bg-red-900/30' 
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      }`}
+                    >
+                      {isRecording ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                      )}
                     </button>
                     
                     {/* Send Button */}
