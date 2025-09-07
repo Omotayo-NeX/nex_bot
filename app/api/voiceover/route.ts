@@ -1,45 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
+import { PrismaClient } from "@prisma/client";
 
-export const runtime = 'edge';
-
-// Rolling 24-hour rate limiting (10 requests per user per 24-hour window)
-let requestLog: Record<string, number[]> = {};
-
-function getClientIP(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  const realIP = req.headers.get('x-real-ip');
-  const remoteAddress = forwarded?.split(',')[0].trim() || realIP || 'unknown';
-  return remoteAddress;
-}
-
-function checkRateLimit(clientIP: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  const maxRequests = 10;
-
-  // Initialize user's request log if it doesn't exist
-  if (!requestLog[clientIP]) {
-    requestLog[clientIP] = [];
-  }
-
-  // Filter out requests older than 24 hours (rolling window)
-  requestLog[clientIP] = requestLog[clientIP].filter(timestamp => {
-    return now - timestamp < twentyFourHours;
-  });
-
-  const currentRequests = requestLog[clientIP].length;
-  const remaining = Math.max(0, maxRequests - currentRequests);
-
-  // Check if user has exceeded the limit
-  if (currentRequests >= maxRequests) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  // Log this request
-  requestLog[clientIP].push(now);
-  
-  return { allowed: true, remaining: remaining - 1 };
-}
+const prisma = new PrismaClient();
 
 // Voice ID mappings for ElevenLabs voices
 const VOICE_IDS = {
@@ -53,17 +17,44 @@ const VOICE_IDS = {
 
 export async function POST(req: NextRequest) {
   try {
-    // Check rate limit first
-    const clientIP = getClientIP(req);
-    const rateLimit = checkRateLimit(clientIP);
-    
-    if (!rateLimit.allowed) {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json(
-        { error: 'Daily limit of 10 voice generations reached (24h rolling window)' },
+        { error: 'Authentication required. Please sign in to use voice generation.' },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await prisma.user.findUnique({ 
+      where: { email: session.user.email } 
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found. Please try signing in again.' },
+        { status: 401 }
+      );
+    }
+
+    // Check rate limit (rolling 24-hour window)
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    const requestCount = await prisma.voiceRequest.count({
+      where: {
+        userId: user.id,
+        createdAt: { gte: cutoff },
+      },
+    });
+
+    if (requestCount >= 10) {
+      return NextResponse.json(
+        { error: 'Daily limit of 10 voice generations reached. Limit resets in 24 hours from your first request today.' },
         { status: 429 }
       );
     }
 
+    // Get request body
     const { text, voice = 'Rachel' } = await req.json();
 
     if (!text || typeof text !== 'string') {
@@ -80,14 +71,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check ElevenLabs API key
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'ElevenLabs API key not configured' },
+        { error: 'Voice generation service is temporarily unavailable' },
         { status: 500 }
       );
     }
 
+    // Log the voice request
+    await prisma.voiceRequest.create({
+      data: { userId: user.id },
+    });
+
+    // Generate voice with ElevenLabs
     const voiceId = VOICE_IDS[voice as keyof typeof VOICE_IDS] || VOICE_IDS.Rachel;
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
 
@@ -130,11 +128,11 @@ export async function POST(req: NextRequest) {
       
       // Provide specific error messages for common status codes
       if (response.status === 401) {
-        errorMessage = 'Invalid ElevenLabs API key. Please check your configuration.';
+        errorMessage = 'Voice generation service authentication failed.';
       } else if (response.status === 422) {
         errorMessage = errorMessage.includes('detail') ? errorMessage : 'Invalid voice parameters or text content.';
       } else if (response.status === 429) {
-        errorMessage = 'Rate limit exceeded. Please try again later.';
+        errorMessage = 'Voice generation service rate limit exceeded. Please try again later.';
       }
 
       return NextResponse.json(

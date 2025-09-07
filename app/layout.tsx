@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from '@/lib/providers'
 
 // Force deployment refresh
 
@@ -30,7 +31,9 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/Nex_logomark_white.png" />
       </head>
       <body className="bg-zinc-50 text-zinc-900">
-        {children}
+        <Providers session={null}>
+          {children}
+        </Providers>
       </body>
     </html>
   )
