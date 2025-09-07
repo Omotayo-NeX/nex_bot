@@ -14,7 +14,7 @@ function isErrorMessage(text: string): boolean {
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! I'm NeX AI, your intelligent assistant. What would you like to explore today?", isBot: true }
+    { id: 1, text: "Hi! I'm NeX AI, developed by Nex Consulting Limited in Abuja. I'm your conversational expert in digital marketing & AI automation. I can help you create strategies, content calendars, automation workflows, and more! For advanced business consultation, visit nexconsultingltd.com", isBot: true }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -109,7 +109,15 @@ export default function ChatPage() {
             </div>
             
             {/* New Chat Button */}
-            <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 group">
+            <button 
+              onClick={() => {
+                setMessages([
+                  { id: 1, text: "Hi! I'm NeX AI, developed by Nex Consulting Limited in Abuja. I'm your conversational expert in digital marketing & AI automation. I can help you create strategies, content calendars, automation workflows, and more! For advanced business consultation, visit nexconsultingltd.com", isBot: true }
+                ]);
+                setInput("");
+              }}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 group"
+            >
               <div className="flex items-center justify-center space-x-2">
                 <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -257,7 +265,7 @@ export default function ChatPage() {
         <div className="flex-1 flex">
           {/* Messages Area */}
           <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-6 overflow-y-auto pb-32">
+            <div className="flex-1 p-6 overflow-y-auto" style={{ paddingBottom: '120px' }}>
               <div className="max-w-4xl mx-auto">
                 {/* Welcome Message - Centered */}
                 {messages.length === 1 && (
@@ -356,7 +364,7 @@ export default function ChatPage() {
             </div>
             
             {/* Input Area - Fixed at bottom */}
-            <div className="fixed bottom-0 left-0 w-full bg-gray-900/95 backdrop-blur-sm border-t border-gray-800/50 p-6">
+            <div className={`fixed bottom-0 left-0 right-0 lg:left-80 ${rightSidebarOpen ? 'xl:right-80' : 'xl:right-0'} bg-[#0d0d1a] border-t border-gray-800 p-4 z-30`}>
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center gap-3 bg-gray-800/80 backdrop-blur-sm rounded-2xl p-3 border border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
                   <div className="flex-1 relative">
