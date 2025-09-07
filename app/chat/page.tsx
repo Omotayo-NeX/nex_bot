@@ -359,7 +359,7 @@ export default function ChatPage() {
       </div>
 
       <div 
-        className="absolute bottom-0 bg-gray-900 border-t border-gray-700 p-4 z-[1000]"
+        className="fixed bottom-0 bg-gray-900 border-t border-gray-700 p-4 z-[1000]"
         style={{
           left: '260px',
           right: '300px'
