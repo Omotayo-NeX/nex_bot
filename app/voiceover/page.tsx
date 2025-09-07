@@ -44,7 +44,9 @@ export default function VoiceOverPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate voice');
+        const errorMessage = errorData.error || `HTTP ${response.status}: Failed to generate voice`;
+        alert(errorMessage);
+        return;
       }
 
       // Convert response to blob
@@ -66,7 +68,8 @@ export default function VoiceOverPage() {
 
     } catch (error) {
       console.error('Error generating voice:', error);
-      alert('Failed to generate voice. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate voice. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }

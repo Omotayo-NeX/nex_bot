@@ -61,28 +61,34 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ElevenLabs API error:', response.status, errorText);
+      let errorMessage = 'Failed to generate voice. Please try again.';
       
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail?.message || errorData.message || errorData.error || errorMessage;
+      } catch {
+        // If response is not JSON, try to get text
+        try {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        } catch {
+          // Keep default error message
+        }
+      }
+      
+      console.error('ElevenLabs API error:', response.status, errorMessage);
+      
+      // Provide specific error messages for common status codes
       if (response.status === 401) {
-        return NextResponse.json(
-          { error: 'Invalid ElevenLabs API key' },
-          { status: 401 }
-        );
+        errorMessage = 'Invalid ElevenLabs API key. Please check your configuration.';
       } else if (response.status === 422) {
-        return NextResponse.json(
-          { error: 'Invalid voice parameters or text content' },
-          { status: 422 }
-        );
+        errorMessage = errorMessage.includes('detail') ? errorMessage : 'Invalid voice parameters or text content.';
       } else if (response.status === 429) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        );
+        errorMessage = 'Rate limit exceeded. Please try again later.';
       }
 
       return NextResponse.json(
-        { error: 'Failed to generate voice. Please try again.' },
+        { error: errorMessage },
         { status: response.status }
       );
     }
