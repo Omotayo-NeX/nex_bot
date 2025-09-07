@@ -2,15 +2,13 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Volume2, Download, Play, Pause, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Volume2, Download, Mic, MicOff } from 'lucide-react';
 
 export default function VoiceOverPage() {
   const [text, setText] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('Rachel');
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
 
@@ -56,18 +54,6 @@ export default function VoiceOverPage() {
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
 
-      // Create and play audio element
-      const audio = new Audio(url);
-      setAudioElement(audio);
-      
-      audio.addEventListener('ended', () => {
-        setIsPlaying(false);
-      });
-
-      // Auto-play the generated audio
-      audio.play();
-      setIsPlaying(true);
-
     } catch (error) {
       console.error('Error generating voice:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate voice. Please try again.';
@@ -77,28 +63,6 @@ export default function VoiceOverPage() {
     }
   };
 
-  const togglePlayback = () => {
-    if (audioElement) {
-      if (isPlaying) {
-        audioElement.pause();
-        setIsPlaying(false);
-      } else {
-        audioElement.play();
-        setIsPlaying(true);
-      }
-    }
-  };
-
-  const downloadAudio = () => {
-    if (audioUrl) {
-      const link = document.createElement('a');
-      link.href = audioUrl;
-      link.download = `nex-voiceover-${Date.now()}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
 
   const startRecording = () => {
     // Check if Speech Recognition is supported
@@ -268,27 +232,39 @@ export default function VoiceOverPage() {
                 </>
               )}
             </button>
+          </div>
 
-            {/* Audio Controls */}
-            {audioUrl && (
-              <div className="flex gap-3">
-                <button
-                  onClick={togglePlayback}
-                  className="bg-gray-800/80 hover:bg-gray-700/80 text-white p-4 rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
+          {/* Audio Player */}
+          {audioUrl && (
+            <div className="mt-6 p-6 bg-gray-800/50 rounded-xl border border-gray-700/30">
+              <h3 className="text-white font-semibold mb-4">Generated Audio</h3>
+              
+              {/* Native Audio Player */}
+              <div className="flex justify-center mb-4">
+                <audio
+                  controls
+                  src={audioUrl}
+                  className="w-full max-w-lg rounded-lg bg-gray-700/50"
+                  style={{ height: '48px' }}
+                  autoPlay
                 >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </button>
-                
-                <button
-                  onClick={downloadAudio}
-                  className="bg-gray-800/80 hover:bg-gray-700/80 text-white p-4 rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
-                  title="Download MP3"
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+              
+              {/* Download Button */}
+              <div className="flex justify-center mt-4">
+                <a
+                  href={audioUrl}
+                  download={`nex-voiceover-${Date.now()}.mp3`}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
                 >
                   <Download className="w-5 h-5" />
-                </button>
+                  ⬇️ Download MP3
+                </a>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Sample Texts */}
           <div className="mt-8 p-6 bg-gray-800/50 rounded-xl border border-gray-700/30">
@@ -312,9 +288,9 @@ export default function VoiceOverPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-gray-400 text-sm">
-          <p>Powered by ElevenLabs AI Voice Technology & NeX Consulting Limited</p>
-        </div>
+        <footer className="text-center text-sm text-gray-400 mt-8">
+          Powered by NeX Consulting Ltd
+        </footer>
       </div>
     </div>
   );
