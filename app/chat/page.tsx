@@ -253,7 +253,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950 text-white relative">
+    <div className="h-screen bg-gray-950 text-white" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
       <header className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Sparkles className="h-6 w-6 text-blue-400" />
@@ -280,8 +280,7 @@ export default function ChatPage() {
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950"
-        style={{ paddingBottom: '90px' }}
+        className="overflow-y-auto p-4 space-y-4 bg-gray-950"
       >
         {messages.length === 0 && (
           <div className="flex justify-start">
@@ -358,13 +357,7 @@ export default function ChatPage() {
         )}
       </div>
 
-      <div 
-        className="fixed bottom-0 bg-gray-900 border-t border-gray-700 p-4 z-[1000]"
-        style={{
-          left: '260px',
-          right: '300px'
-        }}
-      >
+      <div className="bg-gray-900 border-t border-gray-700 p-4" style={{ marginLeft: '260px', marginRight: '300px' }}>
         <div className="flex gap-3 w-full">
           <input
             type="text"
