@@ -102,19 +102,25 @@ export default function LandingPage() {
               Testimonials
             </button>
             
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link href="/api/auth/signin">
-                <button className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300">
-                  <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
-                  <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
-                    Sign In →
-                  </span>
-                </button>
+            <div className="flex items-center space-x-4">
+              <Link href="/signup" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
+                Sign Up
               </Link>
-            </motion.div>
+              
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/api/auth/signin">
+                  <button className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300">
+                    <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
+                    <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
+                      Sign In →
+                    </span>
+                  </button>
+                </Link>
+              </motion.div>
+            </div>
           </div>
         </div>
       </motion.header>
@@ -280,10 +286,10 @@ export default function LandingPage() {
             >
               <div className="relative">
                 <Image
-                  src="/features/voice.png"
+                  src="/images/voice.png"
                   alt="AI Voice Overs"
-                  width={1200}
-                  height={800}
+                  width={500}
+                  height={400}
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
@@ -303,10 +309,10 @@ export default function LandingPage() {
             >
               <div className="relative">
                 <Image
-                  src="/features/pictures.png"
+                  src="/images/pictures.png"
                   alt="AI Picture Generation"
-                  width={1200}
-                  height={800}
+                  width={500}
+                  height={400}
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
@@ -356,45 +362,15 @@ export default function LandingPage() {
             >
               <div className="relative">
                 <Image
-                  src="/features/africa.png"
-                  alt="Built for African Businesses"
-                  width={1200}
-                  height={800}
+                  src="/images/africa.png"
+                  alt="Africa Startups"
+                  width={500}
+                  height={400}
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* Trusted By Section */}
-      <section className="relative z-10 py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            viewport={{ once: true, margin: "-100px" }}
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-12">
-              Trusted by startups across Africa
-            </h2>
-            <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-              {[1, 2, 3, 4, 5].map((index) => (
-                <motion.div
-                  key={index}
-                  initial={{ y: 20, opacity: 0 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  className="w-24 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center"
-                >
-                  <span className="text-xs font-bold text-gray-500">STARTUP</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </section>
 
