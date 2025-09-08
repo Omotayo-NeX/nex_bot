@@ -48,6 +48,17 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      // If the url is relative, make it absolute
+      if (url.startsWith('/')) {
+        url = `${baseUrl}${url}`;
+      }
+      
+      // If the URL is from the same origin, allow it but redirect to /chat
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/chat`;
+      }
+      
+      // For any other case, redirect to /chat
       return `${baseUrl}/chat`;
     },
     async session({ session, user }) {

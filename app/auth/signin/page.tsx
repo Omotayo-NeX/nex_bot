@@ -30,13 +30,11 @@ export default function SignIn() {
     const result = await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      callbackUrl: "/chat",
     });
 
     if (result?.error) {
       setError("Invalid email or password");
-    } else {
-      router.push("/chat");
     }
     setLoading(false);
   };
