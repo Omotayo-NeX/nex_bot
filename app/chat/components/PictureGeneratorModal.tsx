@@ -11,13 +11,19 @@ interface ImageHistory {
   timestamp: number;
 }
 
+interface GeneratedImage {
+  url?: string;
+  b64_json?: string;
+  imageUrl?: string;
+}
+
 interface PictureGeneratorModalProps {
   onClose: () => void;
 }
 
 export default function PictureGeneratorModal({ onClose }: PictureGeneratorModalProps) {
   const [prompt, setPrompt] = useState('');
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
   const [revisedPrompt, setRevisedPrompt] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,15 +70,25 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
       }
 
       const data = await response.json();
-      setGeneratedImage(data.imageUrl);
-      setRevisedPrompt(data.revisedPrompt || '');
+      console.log('Image generation response:', data);
+      
+      // Handle different response formats from different providers
+      const imageData: GeneratedImage = {
+        imageUrl: data.imageUrl,
+        url: data.url,
+        b64_json: data.b64_json
+      };
+      
+      setGeneratedImage(imageData);
+      setRevisedPrompt(data.revised_prompt || data.revisedPrompt || '');
 
-      // Add to history
+      // Add to history (use the primary image URL)
+      const imageUrl = data.imageUrl || data.url || `data:image/png;base64,${data.b64_json}`;
       const newHistoryItem: ImageHistory = {
         id: Date.now().toString(),
         prompt: prompt.trim(),
-        imageUrl: data.imageUrl,
-        revisedPrompt: data.revisedPrompt,
+        imageUrl: imageUrl,
+        revisedPrompt: data.revised_prompt || data.revisedPrompt,
         timestamp: Date.now(),
       };
 
@@ -172,16 +188,33 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
               </div>
             )}
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-64 h-64 bg-gray-800 rounded-xl border-2 border-dashed border-gray-600 flex items-center justify-center mb-4">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">Generating your image...</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Generated Image */}
             {generatedImage && (
               <div className="space-y-4">
-                <div className="relative">
-                  <Image
-                    src={generatedImage}
+                <div className="relative flex justify-center">
+                  <img
+                    src={generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`}
                     alt="Generated image"
-                    width={512}
-                    height={512}
-                    className="w-full max-w-lg mx-auto rounded-xl border border-gray-700"
+                    className="max-w-lg w-full h-auto rounded-xl border border-gray-700 shadow-lg"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e);
+                      setError('Failed to load generated image. Please try again.');
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully');
+                    }}
                   />
                 </div>
 
@@ -195,7 +228,10 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
 
                 <div className="flex justify-center">
                   <button
-                    onClick={() => downloadImage(generatedImage, `generated-${Date.now()}.png`)}
+                    onClick={() => {
+                      const imageUrl = generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`;
+                      downloadImage(imageUrl, `generated-${Date.now()}.png`);
+                    }}
                     className="flex items-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors"
                   >
                     <Download className="w-4 h-4" />
@@ -212,12 +248,14 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {imageHistory.slice(0, 6).map((item) => (
                     <div key={item.id} className="group relative">
-                      <Image
+                      <img
                         src={item.imageUrl}
                         alt={item.prompt}
-                        width={200}
-                        height={200}
                         className="w-full aspect-square object-cover rounded-lg border border-gray-700"
+                        onError={(e) => {
+                          console.error('History image failed to load:', item.imageUrl);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                         <button
