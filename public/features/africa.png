@@ -1,29 +1,149 @@
 <svg width="600" height="400" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="400" fill="#F8FAFC"/>
-  <rect x="50" y="50" width="500" height="300" rx="20" fill="white" stroke="#E2E8F0" stroke-width="2"/>
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#africaGradient)"/>
   
-  <!-- Simplified Africa outline -->
-  <path d="M280 120 Q290 100 310 105 Q330 110 340 130 Q350 150 345 170 Q340 190 330 210 Q320 230 310 240 Q300 250 290 245 Q280 240 270 230 Q260 220 255 200 Q250 180 255 160 Q260 140 270 130 Q275 125 280 120Z" 
-        fill="#10B981" opacity="0.8"/>
+  <!-- African Business Hub -->
+  <rect x="40" y="40" width="520" height="320" rx="20" fill="rgba(255,255,255,0.95)" stroke="rgba(245,158,11,0.3)" stroke-width="2"/>
   
-  <!-- Business icons around Africa -->
-  <rect x="220" y="140" width="20" height="15" rx="2" fill="#3B82F6"/>
-  <rect x="220" y="137" width="20" height="3" rx="1.5" fill="#3B82F6"/>
+  <!-- Stylized Africa Map -->
+  <g transform="translate(200, 100)">
+    <path d="M100 20 Q120 10 140 15 Q160 20 170 35 Q180 50 185 70 Q190 90 185 110 Q180 130 170 145 Q160 160 150 170 Q140 175 130 180 Q120 175 110 170 Q100 165 90 155 Q80 145 75 130 Q70 115 70 100 Q70 85 75 70 Q80 55 85 40 Q90 30 95 25 Q98 22 100 20Z" 
+          fill="url(#africaMapGradient)" stroke="rgba(245,158,11,0.6)" stroke-width="3"/>
+    
+    <!-- Country highlights -->
+    <circle cx="110" cy="80" r="4" fill="#DC2626" opacity="0.8"/> <!-- Nigeria -->
+    <circle cx="130" cy="120" r="3" fill="#059669" opacity="0.8"/> <!-- Kenya -->
+    <circle cx="140" cy="160" r="3" fill="#7C3AED" opacity="0.8"/> <!-- South Africa -->
+    <circle cx="85" cy="90" r="3" fill="#DC2626" opacity="0.8"/> <!-- Ghana -->
+    <circle cx="155" cy="70" r="3" fill="#0891B2" opacity="0.8"/> <!-- Egypt -->
+  </g>
   
-  <circle cx="380" cy="170" r="12" fill="#F59E0B"/>
-  <rect x="374" y="164" width="12" height="12" rx="2" fill="white"/>
+  <!-- Business People Silhouettes -->
+  <g transform="translate(60, 150)">
+    <!-- Person 1 - Nigerian Entrepreneur -->
+    <circle cx="30" cy="25" r="15" fill="url(#person1Gradient)"/>
+    <rect x="15" y="35" width="30" height="45" rx="15" fill="url(#person1Gradient)"/>
+    <!-- Laptop -->
+    <rect x="20" y="45" width="20" height="12" rx="2" fill="#374151"/>
+    <rect x="22" y="47" width="16" height="8" rx="1" fill="#3B82F6"/>
+  </g>
   
-  <polygon points="260,200 270,190 280,200 275,210 265,210" fill="#8B5CF6"/>
+  <g transform="translate(420, 140)">
+    <!-- Person 2 - Kenyan Tech Leader -->
+    <circle cx="30" cy="25" r="15" fill="url(#person2Gradient)"/>
+    <rect x="15" y="35" width="30" height="45" rx="15" fill="url(#person2Gradient)"/>
+    <!-- Phone -->
+    <rect x="25" y="50" width="8" height="12" rx="2" fill="#374151"/>
+    <rect x="26" y="51" width="6" height="8" rx="1" fill="#10B981"/>
+  </g>
   
-  <!-- Network connections -->
-  <line x1="240" y1="150" x2="300" y2="180" stroke="#3B82F6" stroke-width="2" opacity="0.5" stroke-dasharray="4,4"/>
-  <line x1="370" y1="180" x2="320" y2="190" stroke="#F59E0B" stroke-width="2" opacity="0.5" stroke-dasharray="4,4"/>
-  <line x1="270" y1="200" x2="310" y2="185" stroke="#8B5CF6" stroke-width="2" opacity="0.5" stroke-dasharray="4,4"/>
+  <g transform="translate(100, 250)">
+    <!-- Person 3 - South African Business Owner -->
+    <circle cx="30" cy="25" r="15" fill="url(#person3Gradient)"/>
+    <rect x="15" y="35" width="30" height="45" rx="15" fill="url(#person3Gradient)"/>
+    <!-- Briefcase -->
+    <rect x="20" y="55" width="20" height="12" rx="2" fill="#92400E"/>
+  </g>
   
-  <!-- Growth arrow -->
-  <path d="M350 250 Q370 240 380 220" stroke="#10B981" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <polygon points="375,225 385,215 385,225 375,220" fill="#10B981"/>
+  <g transform="translate(380, 250)">
+    <!-- Person 4 - Egyptian Innovator -->
+    <circle cx="30" cy="25" r="15" fill="url(#person4Gradient)"/>
+    <rect x="15" y="35" width="30" height="45" rx="15" fill="url(#person4Gradient)"/>
+    <!-- Tablet -->
+    <rect x="18" y="48" width="24" height="16" rx="3" fill="#374151"/>
+    <rect x="20" y="50" width="20" height="12" rx="2" fill="#8B5CF6"/>
+  </g>
   
-  <!-- Title -->
-  <text x="300" y="330" text-anchor="middle" fill="#1F2937" font-family="Arial, sans-serif" font-size="24" font-weight="bold">Built for Africa</text>
+  <!-- Network Connections -->
+  <g stroke="rgba(59,130,246,0.4)" stroke-width="3" stroke-dasharray="8,4" opacity="0.8">
+    <line x1="90" y1="200" x2="300" y2="180"/>
+    <line x1="450" y1="190" x2="340" y2="200"/>
+    <line x1="130" y1="300" x2="300" y2="220"/>
+    <line x1="410" y1="300" x2="340" y2="240"/>
+    <line x1="90" y1="200" x2="130" y2="300"/>
+    <line x1="450" y1="190" x2="410" y2="300"/>
+  </g>
+  
+  <!-- Network Nodes -->
+  <circle cx="90" cy="200" r="6" fill="#3B82F6" opacity="0.9"/>
+  <circle cx="450" cy="190" r="6" fill="#10B981" opacity="0.9"/>
+  <circle cx="130" cy="300" r="6" fill="#8B5CF6" opacity="0.9"/>
+  <circle cx="410" cy="300" r="6" fill="#F59E0B" opacity="0.9"/>
+  <circle cx="300" cy="200" r="8" fill="#DC2626" opacity="0.9"/>
+  
+  <!-- Business Growth Chart -->
+  <rect x="450" y="80" width="100" height="80" rx="8" fill="rgba(16,185,129,0.1)" stroke="rgba(16,185,129,0.3)" stroke-width="2"/>
+  <text x="500" y="100" text-anchor="middle" fill="#10B981" font-family="Arial" font-size="9" font-weight="bold">GROWTH</text>
+  
+  <!-- Chart bars -->
+  <rect x="460" y="140" width="8" height="15" rx="1" fill="#10B981" opacity="0.6"/>
+  <rect x="470" y="135" width="8" height="20" rx="1" fill="#10B981" opacity="0.7"/>
+  <rect x="480" y="125" width="8" height="30" rx="1" fill="#10B981" opacity="0.8"/>
+  <rect x="490" y="115" width="8" height="40" rx="1" fill="#10B981"/>
+  <rect x="500" y="110" width="8" height="45" rx="1" fill="#059669"/>
+  <rect x="510" y="105" width="8" height="50" rx="1" fill="#047857"/>
+  <rect x="520" y="100" width="8" height="55" rx="1" fill="#065F46"/>
+  
+  <!-- Success Metrics -->
+  <rect x="80" y="320" width="440" height="30" rx="10" fill="rgba(59,130,246,0.1)"/>
+  <text x="300" y="335" text-anchor="middle" fill="#3B82F6" font-family="Arial" font-size="11" font-weight="bold">Powering 50,000+ African Businesses</text>
+  <text x="300" y="348" text-anchor="middle" fill="#6B7280" font-family="Arial" font-size="9">From Lagos to Cairo • Nairobi to Cape Town</text>
+  
+  <!-- Innovation Icons -->
+  <g transform="translate(70, 80)">
+    <!-- AI Icon -->
+    <circle cx="15" cy="15" r="12" fill="rgba(139,92,246,0.2)" stroke="#8B5CF6" stroke-width="2"/>
+    <circle cx="15" cy="15" r="6" fill="#8B5CF6"/>
+    <circle cx="10" cy="12" r="2" fill="white"/>
+    <circle cx="20" cy="12" r="2" fill="white"/>
+    <rect x="12" y="18" width="6" height="2" rx="1" fill="white"/>
+  </g>
+  
+  <g transform="translate(480, 320)">
+    <!-- Globe Icon -->
+    <circle cx="15" cy="15" r="12" fill="rgba(16,185,129,0.2)" stroke="#10B981" stroke-width="2"/>
+    <path d="M8 15 Q15 8 22 15 Q15 22 8 15" fill="none" stroke="#10B981" stroke-width="2"/>
+    <line x1="15" y1="3" x2="15" y2="27" stroke="#10B981" stroke-width="2"/>
+    <line x1="3" y1="15" x2="27" y2="15" stroke="#10B981" stroke-width="2"/>
+  </g>
+  
+  <!-- Currency Symbols -->
+  <g transform="translate(520, 150)" fill="#F59E0B" font-family="Arial" font-size="12" font-weight="bold">
+    <text x="0" y="0">₦</text> <!-- Naira -->
+    <text x="10" y="10">£</text> <!-- Pound -->
+    <text x="0" y="20">$</text> <!-- Dollar -->
+    <text x="10" y="30">€</text> <!-- Euro -->
+  </g>
+  
+  <!-- Mobile-First Badge -->
+  <rect x="380" y="100" width="80" height="25" rx="12" fill="rgba(245,158,11,0.2)" stroke="#F59E0B" stroke-width="2"/>
+  <text x="420" y="115" text-anchor="middle" fill="#F59E0B" font-family="Arial" font-size="9" font-weight="bold">MOBILE FIRST</text>
+  
+  <defs>
+    <linearGradient id="africaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#F0FDF4"/>
+    </linearGradient>
+    <linearGradient id="africaMapGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#10B981" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="person1Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92400E"/>
+      <stop offset="100%" stop-color="#451A03"/>
+    </linearGradient>
+    <linearGradient id="person2Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78350F"/>
+      <stop offset="100%" stop-color="#451A03"/>
+    </linearGradient>
+    <linearGradient id="person3Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A16207"/>
+      <stop offset="100%" stop-color="#451A03"/>
+    </linearGradient>
+    <linearGradient id="person4Gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#451A03"/>
+    </linearGradient>
+  </defs>
 </svg>

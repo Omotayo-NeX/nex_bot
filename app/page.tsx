@@ -131,6 +131,79 @@ export default function LandingPage() {
             </Link>
           </motion.div>
         </motion.div>
+
+        {/* Device Mockups */}
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+          className="mt-20 relative"
+        >
+          <div className="flex justify-center items-end space-x-8">
+            {/* Laptop Mockup */}
+            <motion.div
+              initial={{ x: -100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 1.2, delay: 1, ease: "easeOut" }}
+              whileHover={{ y: -10, scale: 1.02 }}
+              className="relative"
+            >
+              <Image
+                src="/mockups/laptop.png"
+                alt="NeX AI on Laptop"
+                width={600}
+                height={375}
+                className="object-cover rounded-xl shadow-2xl"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent rounded-xl"></div>
+            </motion.div>
+
+            {/* Phone Mockup */}
+            <motion.div
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 1.2, delay: 1.2, ease: "easeOut" }}
+              whileHover={{ y: -10, scale: 1.02 }}
+              className="relative z-10"
+            >
+              <Image
+                src="/mockups/phone.png"
+                alt="NeX AI on Mobile"
+                width={200}
+                height={400}
+                className="object-cover rounded-xl shadow-2xl"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-600/10 to-transparent rounded-xl"></div>
+            </motion.div>
+          </div>
+
+          {/* Floating Elements */}
+          <motion.div
+            animate={{ 
+              y: [0, -20, 0],
+              rotate: [0, 5, 0]
+            }}
+            transition={{ 
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute -top-4 left-1/4 w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-20 blur-sm"
+          />
+          <motion.div
+            animate={{ 
+              y: [0, 15, 0],
+              rotate: [0, -3, 0]
+            }}
+            transition={{ 
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1
+            }}
+            className="absolute -bottom-8 right-1/4 w-12 h-12 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full opacity-25 blur-sm"
+          />
+        </motion.div>
       </section>
 
       {/* Scrolling Features Section */}
@@ -181,7 +254,7 @@ export default function LandingPage() {
                     alt="AI Voice Overs"
                     width={600}
                     height={400}
-                    className="w-full h-auto"
+                    className="object-cover rounded-xl shadow-lg w-full h-auto"
                   />
                 </div>
                 {/* Floating accent */}
@@ -243,7 +316,7 @@ export default function LandingPage() {
                     alt="AI Picture Generation"
                     width={600}
                     height={400}
-                    className="w-full h-auto"
+                    className="object-cover rounded-xl shadow-lg w-full h-auto"
                   />
                 </div>
                 {/* Floating accent */}
@@ -305,7 +378,7 @@ export default function LandingPage() {
                     alt="Built for African Businesses"
                     width={600}
                     height={400}
-                    className="w-full h-auto"
+                    className="object-cover rounded-xl shadow-lg w-full h-auto"
                   />
                 </div>
                 {/* Floating accent */}
