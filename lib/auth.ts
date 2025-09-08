@@ -40,7 +40,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "database" as const },
+  session: { strategy: "jwt" as const },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
@@ -52,9 +52,15 @@ export const authOptions: NextAuthOptions = {
       if (url.startsWith("/")) return `${baseUrl}${url}`
       return `${baseUrl}/chat`
     },
-    async session({ session, user }) {
-      if (session?.user && user?.id) {
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session?.user && token?.id) {
+        session.user.id = token.id as string;
       }
       return session;
     },
