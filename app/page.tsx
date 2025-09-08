@@ -103,7 +103,7 @@ export default function LandingPage() {
             </button>
             
             <div className="flex items-center space-x-4">
-              <Link href="/signup" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
+              <Link href="/api/auth/signin" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
                 Sign Up
               </Link>
               
