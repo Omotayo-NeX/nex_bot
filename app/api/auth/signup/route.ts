@@ -6,6 +6,22 @@ export async function POST(req: NextRequest) {
   try {
     console.log('🔍 Starting signup process...');
     
+    // Log database connection info (partially masked)
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':****@');
+      console.log('🔗 Database URL:', maskedUrl);
+    }
+    
+    console.log('🔧 Prisma Client initialization...');
+    try {
+      await prisma.$connect();
+      console.log('✅ Prisma Client initialized and connected successfully');
+    } catch (initError: any) {
+      console.error('❌ Prisma Client initialization failed:', initError.message);
+      throw initError;
+    }
+    
     const { name, email, password } = await req.json();
     console.log('📝 Received data:', { name, email, passwordLength: password?.length });
 
@@ -16,10 +32,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🔌 Testing database connection...');
-    await prisma.$connect();
-    console.log('✅ Database connected successfully');
 
     console.log('👤 Checking if user exists...');
     // Check if user already exists
