@@ -1,563 +1,260 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
-// Function to check if a message is an error or rate limit
-function isErrorMessage(text: string): boolean {
-  return text.includes('⚠️') || 
-         text.includes('Rate limit') || 
-         text.includes('Daily limit') ||
-         text.includes('error') ||
-         text.includes('Error');
-}
-
-export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Hi! I'm NeX AI, developed by Nex Consulting Limited in Abuja. I'm your conversational expert in digital marketing & AI automation. I can help you create strategies, content calendars, automation workflows, and more! For advanced business consultation, visit nexconsultingltd.com", isBot: true }
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [activeRightTab, setActiveRightTab] = useState("Chat");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    setMounted(true);
+  }, []);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-    
-    const userMessage = { id: Date.now(), text: input, isBot: false };
-    setMessages(prev => [...prev, userMessage]);
-    
-    const currentInput = input;
-    setInput("");
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: messages.map(msg => ({
-            role: msg.isBot ? 'assistant' : 'user',
-            content: msg.text
-          })).concat([{ role: 'user', content: currentInput }]),
-          conversationId: Date.now().toString()
-        }),
-      });
-      
-      const data = await response.json();
-      
-      // Handle rate limiting or other structured errors
-      if (!response.ok || data.isRateLimit || data.isError) {
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now() + 1, text: data.message || data.error || "Sorry, I'm having trouble responding right now.", isBot: true }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now() + 1, text: data.message, isBot: true }
-        ]);
-      }
-    } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, text: "Sorry, I'm having trouble responding right now.", isBot: true }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const startRecording = () => {
-    // Check if Speech Recognition is supported
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
-      return;
-    }
-
-    const newRecognition = new SpeechRecognition();
-    newRecognition.lang = 'en-US';
-    newRecognition.continuous = false;
-    newRecognition.interimResults = false;
-
-    newRecognition.onstart = () => {
-      setIsRecording(true);
-    };
-
-    newRecognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
-      setIsRecording(false);
-    };
-
-    newRecognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      setIsRecording(false);
-      alert('Speech recognition error: ' + event.error);
-    };
-
-    newRecognition.onend = () => {
-      setIsRecording(false);
-    };
-
-    setRecognition(newRecognition);
-    newRecognition.start();
-  };
-
-  const stopRecording = () => {
-    if (recognition) {
-      recognition.stop();
-      setIsRecording(false);
-    }
-  };
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex">
-      {/* Left Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-gray-900/95 backdrop-blur-xl border-r border-gray-800/50 transition-all duration-300 ease-in-out ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="p-6 border-b border-gray-800/50">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex-1 flex justify-center">
-                <div className="relative w-12 h-12">
-                  <Image 
-                    src="/Nex_logomark_white.png" 
-                    alt="NeX Logo" 
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={() => setLeftSidebarOpen(false)}
-                className="lg:hidden text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800/50"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* New Chat Button */}
-            <button 
-              onClick={() => {
-                setMessages([
-                  { id: 1, text: "Hi! I'm NeX AI, developed by Nex Consulting Limited in Abuja. I'm your conversational expert in digital marketing & AI automation. I can help you create strategies, content calendars, automation workflows, and more! For advanced business consultation, visit nexconsultingltd.com", isBot: true }
-                ]);
-                setInput("");
-              }}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 group"
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>New Chat</span>
-              </div>
-            </button>
-          </div>
-          
-          {/* Feature Buttons */}
-          <div className="px-6 py-4 border-b border-gray-800/50">
-            <div className="space-y-3">
-              {/* AI VoiceOver */}
-              <Link
-                href="/voiceover"
-                className="w-full group relative overflow-hidden bg-gradient-to-r from-gray-800 to-gray-700 hover:from-blue-900/50 hover:to-purple-900/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl block"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M9 5L5 9H3a2 2 0 00-2 2v2a2 2 0 002 2h2l4 4V5z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-white font-semibold">AI VoiceOver</div>
-                    <div className="text-gray-400 text-sm">Convert your text into voice</div>
-                  </div>
-                  <span className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium animate-pulse">New</span>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-
-              {/* Picture Generator */}
-              <Link
-                href="/picture-generator"
-                className="w-full group relative overflow-hidden bg-gradient-to-r from-gray-800 to-gray-700 hover:from-blue-900/50 hover:to-purple-900/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-xl block"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-white font-semibold">Picture Generator</div>
-                    <div className="text-gray-400 text-sm">Create stunning visuals</div>
-                  </div>
-                  <span className="text-xs bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-1 rounded-full font-medium animate-pulse">New</span>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-            </div>
-          </div>
-          
-          {/* Chat Sections */}
-          <div className="flex-1 px-6 py-4 overflow-y-auto">
-            {/* Pinned Chats */}
-            <div className="mb-6">
-              <h3 className="text-gray-400 text-sm font-semibold mb-3 uppercase tracking-wider">Pinned Chats</h3>
-              <div className="space-y-2">
-                <div className="text-gray-500 text-sm py-3 px-4 rounded-lg bg-gray-800/50 border border-gray-700/30">
-                  No pinned chats yet
-                </div>
-              </div>
-            </div>
-            
-            {/* Recent Chats */}
-            <div className="mb-6">
-              <h3 className="text-gray-400 text-sm font-semibold mb-3 uppercase tracking-wider">Recent Chats</h3>
-              <div className="space-y-2">
-                <div className="text-gray-300 text-sm py-3 px-4 rounded-lg hover:bg-gray-800/50 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-700/30 hover:shadow-lg">
-                  Chat about NeX AI features
-                </div>
-                <div className="text-gray-300 text-sm py-3 px-4 rounded-lg hover:bg-gray-800/50 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-700/30 hover:shadow-lg">
-                  UI Design Discussion
-                </div>
-                <div className="text-gray-300 text-sm py-3 px-4 rounded-lg hover:bg-gray-800/50 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-700/30 hover:shadow-lg">
-                  API Integration Help
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Left Sidebar Overlay for Mobile */}
-      {leftSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
-          onClick={() => setLeftSidebarOpen(false)}
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Gradient Background Arcs */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Top Arc */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-blue-100 via-purple-50 to-transparent blur-3xl"
         />
-      )}
+        
+        {/* Bottom Arc */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
+          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-100 via-blue-50 to-transparent blur-3xl"
+        />
+        
+        {/* Center Glow */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 0.6, scale: 1 }}
+          transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-blue-50/30 via-purple-30/20 to-transparent blur-2xl"
+        />
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header Bar */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 shadow-lg">
-          <div className="flex items-center justify-between">
-            {/* Left side - Mobile menu button and NeX AI text */}
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setLeftSidebarOpen(true)}
-                className="lg:hidden text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              
-              {/* NeX AI Brand Text */}
-              <h1 className="text-xl lg:text-2xl font-bold text-white tracking-wide">NeX AI</h1>
-            </div>
-            
-            {/* Right side - Bot Avatar */}
-            <div className="flex items-center space-x-3">
-              {/* Bot Avatar with inline SVG */}
-              <div className="relative">
-                <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white/20 hover:scale-105 transition-transform duration-200">
-                  {/* Modern Robot Head SVG */}
-                  <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="8" width="12" height="10" rx="3" ry="3" />
-                    <line x1="12" y1="4" x2="12" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <circle cx="12" cy="4" r="1.5" />
-                    <circle cx="9" cy="12" r="1.5" />
-                    <circle cx="15" cy="12" r="1.5" />
-                    <rect x="10" y="15" width="4" height="1.5" rx="0.75" />
-                  </svg>
-                </div>
-                {/* Online status indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
-              </div>
-              
-              {/* Settings button (desktop only) */}
-              <button
-                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-                className="hidden xl:flex items-center justify-center w-10 h-10 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg hover:scale-105"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            </div>
+      {/* Header */}
+      <motion.header
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto"
+      >
+        <div className="flex items-center space-x-3">
+          <div className="relative w-10 h-10">
+            <Image 
+              src="/Nex_logomark_white.png" 
+              alt="NeX Logo" 
+              fill
+              className="object-contain filter brightness-0"
+            />
           </div>
-        </div>
-
-        {/* Chat Content */}
-        <div className="flex-1 flex">
-          {/* Messages Area */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-6 overflow-y-auto" style={{ paddingBottom: '120px' }}>
-              <div className="max-w-4xl mx-auto">
-                {/* Welcome Message - Centered */}
-                {messages.length === 1 && (
-                  <div className="text-center py-16">
-                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-2xl p-4">
-                      <div className="relative w-12 h-12">
-                        <Image 
-                          src="/Nex_logomark_white.png" 
-                          alt="NeX AI" 
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                    </div>
-                    <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      Welcome to NeX AI
-                    </h2>
-                    <p className="text-gray-300 text-lg max-w-md mx-auto">
-                      Your intelligent assistant ready to help with any questions, creative tasks, or conversations.
-                    </p>
-                  </div>
-                )}
-                
-                {/* Chat Messages */}
-                <div className="space-y-4">
-                  {messages.map((msg, index) => (
-                    <div key={msg.id} className="mb-4">
-                      {isErrorMessage(msg.text) && msg.isBot ? (
-                        <div className="p-4 bg-red-900/50 text-red-200 rounded-lg animate-fadeOut border border-red-600/30">
-                          <strong className="flex items-center gap-2">
-                            <span className="text-red-400">⚠️</span>
-                            SYSTEM NOTICE
-                          </strong>
-                          <p className="mt-2 text-sm">{msg.text}</p>
-                        </div>
-                      ) : msg.isBot ? (
-                        <div className="flex justify-start">
-                          <div className="p-4 bg-gray-800 text-white rounded-lg max-w-2xl shadow-lg">
-                            <div className="flex items-center mb-2">
-                              <div className="w-6 h-6 relative mr-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
-                                <Image 
-                                  src="/Nex_logomark_white.png" 
-                                  alt="NeX AI" 
-                                  fill
-                                  className="object-contain rounded-full"
-                                />
-                              </div>
-                              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">NeX AI</span>
-                            </div>
-                            <p className="text-sm leading-relaxed">{msg.text}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end">
-                          <div className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg max-w-2xl shadow-lg">
-                            <p className="text-sm leading-relaxed">{msg.text}</p>
-                            <div className="flex justify-end mt-1">
-                              <span className="text-xs text-white/70">You</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {/* Loading indicator */}
-                  {isLoading && (
-                    <div className="flex justify-start animate-fadeIn">
-                      <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 relative rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
-                            <Image 
-                              src="/Nex_logomark_white.png" 
-                              alt="NeX AI" 
-                              fill
-                              className="object-contain rounded-full"
-                            />
-                          </div>
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </div>
-            </div>
-            
-            {/* Input Area - Fixed at bottom */}
-            <div className={`fixed bottom-0 left-0 right-0 lg:left-80 ${rightSidebarOpen ? 'xl:right-80' : 'xl:right-0'} bg-[#0d0d1a] border-t border-gray-800 p-4 z-30`}>
-              <div className="max-w-4xl mx-auto">
-                <div className="flex items-center gap-3 bg-gray-800/80 backdrop-blur-sm rounded-2xl p-3 border border-gray-700/50 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={e => setInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && sendMessage()}
-                      disabled={isLoading}
-                      className="w-full bg-transparent text-white placeholder:text-gray-400 px-4 py-3 focus:outline-none text-sm"
-                      placeholder="Ask NeX AI anything..."
-                    />
-                  </div>
-                  
-                  {/* Icon Buttons */}
-                  <div className="flex items-center gap-2">
-                    {/* Mic Button */}
-                    <button 
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={isLoading}
-                      className={`p-2 transition-all duration-200 rounded-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isRecording 
-                          ? 'text-red-400 bg-red-900/20 animate-pulse hover:bg-red-900/30' 
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                      }`}
-                    >
-                      {isRecording ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                      )}
-                    </button>
-                    
-                    {/* Send Button */}
-                    <button
-                      onClick={sendMessage}
-                      disabled={!input.trim() || isLoading}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white p-2 rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-blue-500/25"
-                    >
-                      <svg 
-                        className="w-5 h-5" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Right Sidebar */}
-          {rightSidebarOpen && (
-            <div className="hidden xl:block w-80 bg-gray-900/95 backdrop-blur-xl border-l border-gray-800/50 transition-all duration-300">
-              <div className="flex flex-col h-full">
-                {/* Right Sidebar Header */}
-                <div className="px-6 py-4 border-b border-gray-800/50">
-                  <div className="flex space-x-1">
-                    {['Chat', 'Images', 'Code'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveRightTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 ${
-                          activeRightTab === tab
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                            : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Right Sidebar Content */}
-                <div className="flex-1 p-6">
-                  {activeRightTab === 'Chat' && (
-                    <div className="space-y-6">
-                      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/30 shadow-lg">
-                        <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          Chat Settings
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-300">AI Model</label>
-                            <select className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
-                              <option>NeX GPT-4</option>
-                              <option>NeX Claude</option>
-                              <option>NeX Gemini</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-300">Temperature</label>
-                            <input 
-                              type="range" 
-                              className="w-full accent-blue-500" 
-                              min="0" 
-                              max="1" 
-                              step="0.1" 
-                              defaultValue="0.7" 
-                            />
-                            <div className="flex justify-between text-xs text-gray-400 mt-1">
-                              <span>Focused</span>
-                              <span>Creative</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {activeRightTab === 'Images' && (
-                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/30 shadow-lg">
-                      <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Image Gallery</h3>
-                      <p className="text-gray-400 text-center py-8">No images generated yet.</p>
-                    </div>
-                  )}
-                  {activeRightTab === 'Code' && (
-                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/30 shadow-lg">
-                      <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">Code Snippets</h3>
-                      <p className="text-gray-400 text-center py-8">No code snippets saved yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <span className="text-2xl font-bold text-gray-900">NeX AI</span>
         </div>
         
-        {/* Footer */}
-        <div className="bg-gray-900/50 backdrop-blur-sm border-t border-gray-800/50 px-6 py-3">
-          <div className="text-center text-xs text-gray-500">
-            Powered by NeX AI Technology
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Link
+            href="/api/auth/signin"
+            className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200"
+          >
+            Sign In
+          </Link>
+        </motion.div>
+      </motion.header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 px-6 py-20 max-w-7xl mx-auto text-center">
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+        >
+          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-8 leading-tight">
+            <span className="block">Smarter Conversations,</span>
+            <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Powered by NeX AI
+            </span>
+          </h1>
+        </motion.div>
+
+        <motion.p
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+          className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed"
+        >
+          Your all-in-one AI assistant for automation, voice, and intelligent workflows.
+        </motion.p>
+
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+        >
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-block"
+          >
+            <Link
+              href="/api/auth/signin"
+              className="inline-flex items-center px-12 py-6 text-xl font-semibold text-white bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 group"
+            >
+              <span>Sign In to Get Started</span>
+              <motion.svg
+                className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </motion.svg>
+            </Link>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section className="relative z-10 px-6 py-32 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="text-center mb-20"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+            Why Choose NeX AI?
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Experience the future of AI-powered conversations and automation
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-12">
+          {/* Feature 1 */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            viewport={{ once: true, margin: "-50px" }}
+            whileHover={{ y: -10, scale: 1.02 }}
+            className="text-center p-8 rounded-3xl bg-white/80 backdrop-blur-sm border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300"
+          >
+            <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Conversational AI</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Engage in natural, intelligent conversations with our advanced AI that understands context and provides meaningful responses.
+            </p>
+          </motion.div>
+
+          {/* Feature 2 */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            viewport={{ once: true, margin: "-50px" }}
+            whileHover={{ y: -10, scale: 1.02 }}
+            className="text-center p-8 rounded-3xl bg-white/80 backdrop-blur-sm border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300"
+          >
+            <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Voice & Automation</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Transform your workflow with voice commands and intelligent automation that adapts to your needs and preferences.
+            </p>
+          </motion.div>
+
+          {/* Feature 3 */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+            viewport={{ once: true, margin: "-50px" }}
+            whileHover={{ y: -10, scale: 1.02 }}
+            className="text-center p-8 rounded-3xl bg-white/80 backdrop-blur-sm border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300"
+          >
+            <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Secure & Scalable</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Built with enterprise-grade security and scalability to grow with your business needs while protecting your data.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-gray-200 py-12">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center space-x-3 mb-6 md:mb-0">
+              <div className="relative w-8 h-8">
+                <Image 
+                  src="/Nex_logomark_white.png" 
+                  alt="NeX Logo" 
+                  fill
+                  className="object-contain filter brightness-0"
+                />
+              </div>
+              <span className="text-lg font-semibold text-gray-900">NeX AI</span>
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-gray-600 mb-2">
+                Powered by{" "}
+                <a href="https://nexconsultingltd.com" className="text-blue-600 hover:text-blue-800 font-medium">
+                  Nex Consulting Limited
+                </a>
+              </p>
+              <p className="text-sm text-gray-500">© 2024 NeX AI. All rights reserved.</p>
+            </div>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
