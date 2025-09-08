@@ -133,6 +133,190 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* Scrolling Features Section */}
+      <section className="relative z-10 py-24 bg-white">
+        {/* Feature 1 - AI Voice Overs (Text Left, Image Right) */}
+        <div className="max-w-7xl mx-auto px-6 mb-32">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              initial={{ x: -50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:pr-8"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                AI Voice Overs at Your Fingertips
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                Generate professional-quality voice overs in multiple languages, tailored for businesses and creators across Africa. Transform your content with natural-sounding AI voices that engage your audience.
+              </p>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/voiceover"
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
+                >
+                  Try Voice Overs
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </motion.div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ x: 50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:pl-8"
+            >
+              <div className="relative">
+                <div className="rounded-2xl overflow-hidden shadow-2xl bg-white border border-gray-100">
+                  <Image
+                    src="/features/voice.png"
+                    alt="AI Voice Overs"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto"
+                  />
+                </div>
+                {/* Floating accent */}
+                <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-80"></div>
+                <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full opacity-60"></div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Subtle divider */}
+        <div className="max-w-7xl mx-auto px-6 mb-32">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        </div>
+
+        {/* Feature 2 - AI Picture Generation (Image Left, Text Right) */}
+        <div className="max-w-7xl mx-auto px-6 mb-32">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              initial={{ x: -50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:pr-8 lg:order-2"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Turn Ideas into Pictures
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                Create high-quality visuals and marketing images instantly with NeX AI's picture generation tools. Perfect for social media, marketing campaigns, and creative projects.
+              </p>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/picture-generator"
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300"
+                >
+                  Generate Images
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </motion.div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ x: -50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:order-1"
+            >
+              <div className="relative">
+                <div className="rounded-2xl overflow-hidden shadow-2xl bg-white border border-gray-100">
+                  <Image
+                    src="/features/pictures.png"
+                    alt="AI Picture Generation"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto"
+                  />
+                </div>
+                {/* Floating accent */}
+                <div className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full opacity-80"></div>
+                <div className="absolute -bottom-4 -right-4 w-6 h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full opacity-60"></div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Subtle divider */}
+        <div className="max-w-7xl mx-auto px-6 mb-32">
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        </div>
+
+        {/* Feature 3 - Built for African Businesses (Text Left, Image Right) */}
+        <div className="max-w-7xl mx-auto px-6 mb-16">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              initial={{ x: -50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:pr-8"
+            >
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Made for Africa, Built for Growth
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                NeX AI is designed with the unique needs of African entrepreneurs in mind — accessible, scalable, and ready to power your business. From Lagos to Nairobi, from Cape Town to Cairo.
+              </p>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/api/auth/signin"
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all duration-300"
+                >
+                  Start Building
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </motion.div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ x: 50, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="lg:pl-8"
+            >
+              <div className="relative">
+                <div className="rounded-2xl overflow-hidden shadow-2xl bg-white border border-gray-100">
+                  <Image
+                    src="/features/africa.png"
+                    alt="Built for African Businesses"
+                    width={600}
+                    height={400}
+                    className="w-full h-auto"
+                  />
+                </div>
+                {/* Floating accent */}
+                <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full opacity-80"></div>
+                <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full opacity-60"></div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="relative z-10 px-6 py-32 max-w-7xl mx-auto">
         <motion.div

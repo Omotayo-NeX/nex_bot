@@ -1,0 +1,18 @@
+<svg width="600" height="400" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="400" fill="#F8FAFC"/>
+  <rect x="50" y="50" width="500" height="300" rx="20" fill="white" stroke="#E2E8F0" stroke-width="2"/>
+  
+  <!-- Microphone Icon -->
+  <circle cx="300" cy="180" r="40" fill="#3B82F6"/>
+  <rect x="285" y="155" width="30" height="50" rx="15" fill="white"/>
+  <rect x="295" y="220" width="10" height="30" fill="#3B82F6"/>
+  <rect x="280" y="245" width="40" height="4" rx="2" fill="#3B82F6"/>
+  
+  <!-- Sound waves -->
+  <circle cx="300" cy="180" r="60" stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="300" cy="180" r="80" stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.4"/>
+  <circle cx="300" cy="180" r="100" stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.2"/>
+  
+  <!-- Title -->
+  <text x="300" y="330" text-anchor="middle" fill="#1F2937" font-family="Arial, sans-serif" font-size="24" font-weight="bold">AI Voice Overs</text>
+</svg>
