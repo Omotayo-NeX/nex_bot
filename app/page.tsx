@@ -103,7 +103,7 @@ export default function LandingPage() {
             </button>
             
             <div className="flex items-center space-x-4">
-              <Link href="/api/auth/signin" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
+              <Link href="/auth/signup" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
                 Sign Up
               </Link>
               
@@ -111,7 +111,7 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Link href="/api/auth/signin">
+                <Link href="/auth/signin">
                   <button className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300">
                     <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
                     <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
@@ -154,7 +154,7 @@ export default function LandingPage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
         >
-          <Link href="/api/auth/signin">
+          <Link href="/auth/signin">
             <motion.button 
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
@@ -645,7 +645,7 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link href="/api/auth/signin">
+              <Link href="/auth/signin">
                 <button className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 bg-white text-purple-700 hover:bg-gray-50 shadow-2xl hover:shadow-white/25">
                   <span className="relative flex items-center">
                     Sign In to Get Started
