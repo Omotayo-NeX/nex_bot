@@ -107,14 +107,27 @@ export default function VoiceoverGeneratorModal({ onClose }: VoiceoverGeneratorM
       }
 
       const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      setAudioUrl(audioUrl);
+      console.log('Audio blob size:', blob.size, 'type:', blob.type);
+      
+      // Clean up previous audio URL
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      
+      const newAudioUrl = URL.createObjectURL(blob);
+      setAudioUrl(newAudioUrl);
 
-      // Auto-play the generated audio
+      // Force audio element to load new source and play
       if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.play();
-        setIsPlaying(true);
+        audioRef.current.src = newAudioUrl;
+        audioRef.current.load(); // Force reload of the audio element
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (playError) {
+          console.error('Auto-play failed:', playError);
+          // Auto-play might be blocked, but audio is ready for manual play
+        }
       }
     } catch (error) {
       console.error('Error generating voiceover:', error);
@@ -294,11 +307,15 @@ export default function VoiceoverGeneratorModal({ onClose }: VoiceoverGeneratorM
                   <div className="flex-1">
                     <audio
                       ref={audioRef}
+                      src={audioUrl}
                       onEnded={handleAudioEnd}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
+                      onLoadedData={() => console.log('Audio loaded successfully')}
+                      onError={(e) => console.error('Audio error:', e)}
                       className="w-full"
                       controls
+                      preload="auto"
                     />
                   </div>
                   

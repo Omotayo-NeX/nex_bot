@@ -204,6 +204,13 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
         )}
       </div>
 
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-700/50">
+        <p className="text-xs text-gray-500 text-center">
+          Powered by NeX Consulting Ltd
+        </p>
+      </div>
+
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;

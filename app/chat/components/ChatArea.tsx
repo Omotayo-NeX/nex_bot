@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Square, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import ChatBubble from './ChatBubble';
 
 interface Message {
@@ -19,6 +20,8 @@ interface ChatAreaProps {
 export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAreaProps) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [speechSupported, setSpeechSupported] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -26,6 +29,64 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          console.log('Speech recognition started');
+          setIsRecording(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          console.log('Speech recognition result:', event.results);
+          if (event.results.length > 0) {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev + (prev ? ' ' : '') + transcript);
+            inputRef.current?.focus();
+            adjustTextareaHeight();
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+          if (event.error === 'not-allowed') {
+            alert('Microphone access denied. Please allow microphone permissions and try again.');
+          } else if (event.error === 'no-speech') {
+            alert('No speech was detected. Please try again.');
+          } else {
+            alert(`Speech recognition error: ${event.error}`);
+          }
+        };
+
+        recognition.onend = () => {
+          console.log('Speech recognition ended');
+          setIsRecording(false);
+        };
+
+        setRecognition(recognition);
+      } else {
+        setSpeechSupported(false);
+        console.warn('Speech recognition not supported');
+      }
+    }
+
+    return () => {
+      if (recognition) {
+        recognition.abort();
+      }
+    };
+  }, []);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -62,6 +123,31 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
     adjustTextareaHeight();
   };
 
+  const startRecording = () => {
+    if (!speechSupported) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge for voice input.');
+      return;
+    }
+
+    if (!recognition) {
+      alert('Speech recognition is not initialized. Please refresh the page and try again.');
+      return;
+    }
+
+    if (isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        recognition.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        alert('Failed to start speech recognition. Please try again.');
+        setIsRecording(false);
+      }
+    }
+  };
+
   const suggestions = [
     'Help me create a marketing strategy for my business',
     'Generate engaging social media content ideas',
@@ -83,9 +169,12 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">N</span>
-              </div>
+              <Image
+                src="/Nex_logomark_white.png"
+                alt="NeX AI Logo"
+                fill
+                className="object-contain"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
@@ -122,9 +211,14 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
+                className="w-20 h-20 relative mb-6 shadow-lg"
               >
-                <span className="text-white font-bold text-2xl">N</span>
+                <Image
+                  src="/Nex_logomark_white.png"
+                  alt="NeX AI Logo"
+                  fill
+                  className="object-contain"
+                />
               </motion.div>
               
               <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
@@ -134,13 +228,62 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                 I'm your AI assistant for digital marketing and automation. How can I help you today?
               </p>
               
+              {/* AI Tools Highlight Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full max-w-4xl">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                >
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                      🖼️
+                    </div>
+                    <h3 className="text-lg font-bold">Picture Generator</h3>
+                  </div>
+                  <p className="text-white/90 text-sm">Generate stunning images with AI using DALL-E and Stability.ai</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105"
+                >
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                      🎤
+                    </div>
+                    <h3 className="text-lg font-bold">Voice Generator</h3>
+                  </div>
+                  <p className="text-white/90 text-sm">Convert text to natural speech with multiple AI voices</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 transition-all transform hover:scale-105"
+                >
+                  <div className="flex items-center mb-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                      💬
+                    </div>
+                    <h3 className="text-lg font-bold">AI Chat</h3>
+                  </div>
+                  <p className="text-white/90 text-sm">Intelligent conversations for marketing and business growth</p>
+                </motion.div>
+              </div>
+
+              {/* Quick Start Suggestions */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-4xl">
                 {suggestions.map((suggestion, index) => (
                   <motion.button
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index, duration: 0.3 }}
+                    transition={{ delay: 0.5 + 0.1 * index, duration: 0.3 }}
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => startSuggestion(suggestion)}
@@ -218,13 +361,16 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
             
             <button
               type="button"
-              onClick={() => setIsRecording(!isRecording)}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-colors ${
+              onClick={startRecording}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-all ${
                 isRecording 
-                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
-                  : 'bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 hover:text-white'
+                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-lg shadow-red-500/25' 
+                  : speechSupported 
+                    ? 'bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 hover:text-white' 
+                    : 'bg-gray-800 text-gray-600 cursor-not-allowed'
               }`}
-              disabled={isLoading}
+              disabled={isLoading || !speechSupported}
+              title={!speechSupported ? 'Speech recognition not supported in this browser' : isRecording ? 'Stop recording' : 'Start voice input'}
             >
               {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
@@ -246,11 +392,27 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
         </form>
 
         <div className="mt-3 text-center">
-          <p className="text-xs text-gray-500">
-            Powered by NeX AI Technology • Press Shift+Enter for new line
-          </p>
+          {isRecording ? (
+            <motion.p 
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-xs text-red-400 flex items-center justify-center space-x-2"
+            >
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span>Listening... Speak now</span>
+            </motion.p>
+          ) : (
+            <p className="text-xs text-gray-500">
+              Press Shift+Enter for new line • Click 🎤 for voice input
+            </p>
+          )}
         </div>
       </motion.div>
+
+      {/* Footer */}
+      <footer className="text-center text-gray-400 text-sm py-4 border-t border-gray-700/50 bg-gray-900/50">
+        Powered by NeX Consulting Ltd
+      </footer>
     </div>
   );
 }
