@@ -43,8 +43,13 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "database" as const },
   pages: {
     signIn: "/auth/signin",
+    error: "/auth/error",
+    newUser: "/chat",
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      return `${baseUrl}/chat`;
+    },
     async session({ session, user }) {
       if (session?.user && user?.id) {
         session.user.id = user.id;
