@@ -1,5 +1,5 @@
 'use client';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
