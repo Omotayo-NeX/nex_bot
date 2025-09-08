@@ -31,7 +31,7 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/Nex_logomark_white.png" />
       </head>
       <body className="bg-zinc-50 text-zinc-900">
-        <Providers session={null}>
+        <Providers session={undefined}>
           {children}
         </Providers>
       </body>
