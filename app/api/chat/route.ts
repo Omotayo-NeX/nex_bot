@@ -63,6 +63,8 @@ function chunkMessage(message: string): string[] {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('🚀 [Chat API] Request received');
+    
     // Get client IP for rate limiting
     const clientIP = getClientIP(req);
     
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
     if (!rateLimit.success) {
       console.log(`🚫 [Chat API] Rate limit exceeded for ${clientIP}: ${rateLimit.error}`);
       return new Response(JSON.stringify({ 
-        message: rateLimit.error,
+        error: rateLimit.error,
         isRateLimit: true,
         type: rateLimit.type,
         reset: rateLimit.reset instanceof Date ? rateLimit.reset.toISOString() : rateLimit.reset,
@@ -82,19 +84,35 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const messages = body?.messages || [];
-    const lastMessage = messages[messages.length - 1]?.content || '';
+    console.log('📝 [Chat API] Request body:', JSON.stringify(body, null, 2));
+    
+    // Handle both old format (single message) and new format (messages array)
+    let messages, lastMessage;
+    if (body.message) {
+      // Single message format from your current chat interface
+      lastMessage = body.message;
+      messages = [{ role: 'user', content: lastMessage }];
+    } else {
+      // Messages array format
+      messages = body?.messages || [];
+      lastMessage = messages[messages.length - 1]?.content || '';
+    }
+    
+    console.log('💬 [Chat API] Processing message:', lastMessage);
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
+      console.error('❌ [Chat API] OpenAI API key not configured');
       return new Response(JSON.stringify({
-        message: 'OpenAI API key not configured',
-        isError: true,
+        error: 'OpenAI API key not configured. Please check environment variables.',
+        response: 'Sorry, the AI service is not properly configured. Please try again later.'
       }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log('✅ [Chat API] OpenAI API key found');
 
     // Check if user is asking to continue
     const continueKeywords = ['continue', 'go on', 'next', 'more', 'keep going', 'and'];
@@ -129,8 +147,9 @@ export async function POST(req: NextRequest) {
     const toolResponse = !isContinueRequest ? detectAndExecuteMarketingTool(lastMessage) : null;
     if (toolResponse) {
       const chunks = chunkMessage(toolResponse);
+      console.log('🔧 [Chat API] Marketing tool response generated');
       return new Response(JSON.stringify({ 
-        message: chunks[0],
+        response: chunks[0],
         hasMore: chunks.length > 1,
         chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
       }), {
@@ -166,6 +185,7 @@ RESPONSE FORMAT:
 - Use proper spacing between ideas`,
     };
 
+    console.log('🤖 [Chat API] Calling OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -183,28 +203,29 @@ RESPONSE FORMAT:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        'OpenAI API error:',
-        response.status,
-        response.statusText,
-        errorText,
-      );
-      return new Response(
-        `OpenAI API error: ${response.status} ${response.statusText}`,
-        { status: 500 },
-      );
+      console.error('❌ [Chat API] OpenAI API error:', response.status, response.statusText, errorText);
+      return new Response(JSON.stringify({
+        error: `OpenAI API error: ${response.status} ${response.statusText}`,
+        response: "I'm experiencing technical difficulties. Please try again in a moment."
+      }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
+    console.log('✅ [Chat API] OpenAI API response received');
+    
     const assistantMessage =
       data.choices[0]?.message?.content ||
       "I'm here to help you grow your business. How can NeX assist you today?";
 
     // Chunk the response for conversational flow
     const chunks = chunkMessage(assistantMessage);
-
+    
+    console.log('📤 [Chat API] Sending response to client');
     return new Response(JSON.stringify({ 
-      message: chunks[0], // Return first chunk
+      response: chunks[0], // Return first chunk - changed from 'message' to 'response'
       hasMore: chunks.length > 1,
       chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
     }), {
@@ -213,9 +234,10 @@ RESPONSE FORMAT:
       },
     });
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error('❌ [Chat API] Unexpected error:', error);
     return new Response(JSON.stringify({
-      message: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      response: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
       isError: true,
     }), { 
       status: 500,
