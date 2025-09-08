@@ -12,39 +12,55 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('🔍 Starting signup process...');
+    
     const { name, email, password } = await req.json();
+    console.log('📝 Received data:', { name, email, passwordLength: password?.length });
 
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
+    console.log('🔌 Testing database connection...');
+    await prisma.$connect();
+    console.log('✅ Database connected successfully');
+
+    console.log('👤 Checking if user exists...');
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ 
       where: { email } 
     });
+    console.log('🔍 Existing user check result:', !!existingUser);
     
     if (existingUser) {
+      console.log('⚠️ User already exists');
       return NextResponse.json(
         { error: "User already exists" },
         { status: 400 }
       );
     }
 
+    console.log('🔒 Hashing password...');
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
+    console.log('✅ Password hashed successfully');
 
+    console.log('👤 Creating user...');
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
+        name: name || null,
         email,
         password: hashedPassword,
-        createdAt: new Date(),
       },
     });
+    console.log('✅ User created successfully:', user.id);
+
+    await prisma.$disconnect();
 
     return NextResponse.json(
       { 
@@ -54,13 +70,22 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Signup error:', error);
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
+    console.error('💥 Signup error:', error);
+    console.error('📋 Error message:', error.message);
+    console.error('🔢 Error code:', error.code);
+    console.error('📊 Error meta:', error.meta);
+    console.error('🏗️ Full error object:', JSON.stringify(error, null, 2));
+    
     return NextResponse.json(
       { 
         error: "Internal server error",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: error.message,
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? {
+          message: error.message,
+          code: error.code,
+          meta: error.meta
+        } : undefined
       },
       { status: 500 }
     );
