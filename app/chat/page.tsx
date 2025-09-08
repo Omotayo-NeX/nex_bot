@@ -1,19 +1,57 @@
 'use client';
-import { useChat } from '@ai-sdk/react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export default function ChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-    keepLastMessageOnError: true,
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input }),
+      });
+
+      if (!response.ok) throw new Error('Failed to get response');
+      
+      const data = await response.json();
+      const assistantMessage: Message = { role: 'assistant', content: data.response || 'Sorry, I could not process your request.' };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = { role: 'assistant', content: 'Sorry, there was an error processing your request.' };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
 
   useEffect(() => {
     if (status === 'loading') return; // Still loading
@@ -94,21 +132,21 @@ export default function ChatPage() {
               <p className="text-gray-400 mb-6">I'm your AI assistant for digital marketing and automation. How can I help you today?</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
                 <button
-                  onClick={() => handleInputChange({ target: { value: 'Help me create a marketing strategy for my business' } } as any)}
+                  onClick={() => setInput('Help me create a marketing strategy for my business')}
                   className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all text-left"
                 >
                   <div className="font-medium text-blue-400 mb-1">Marketing Strategy</div>
                   <div className="text-sm text-gray-400">Get help with marketing plans</div>
                 </button>
                 <button
-                  onClick={() => handleInputChange({ target: { value: 'Create engaging social media content ideas' } } as any)}
+                  onClick={() => setInput('Create engaging social media content ideas')}
                   className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all text-left"
                 >
                   <div className="font-medium text-purple-400 mb-1">Content Ideas</div>
                   <div className="text-sm text-gray-400">Generate creative content</div>
                 </button>
                 <button
-                  onClick={() => handleInputChange({ target: { value: 'Analyze my website performance and suggest improvements' } } as any)}
+                  onClick={() => setInput('Analyze my website performance and suggest improvements')}
                   className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:bg-gray-800/70 transition-all text-left"
                 >
                   <div className="font-medium text-green-400 mb-1">Website Analysis</div>
