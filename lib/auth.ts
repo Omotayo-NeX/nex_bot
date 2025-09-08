@@ -42,22 +42,16 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" as const },
+  session: { strategy: "database" as const },
   pages: {
     signIn: "/auth/signin",
   },
   callbacks: {
-    async session({ session, token }) {
-      if (session?.user && token?.sub) {
-        session.user.id = token.sub;
+    async session({ session, user }) {
+      if (session?.user && user?.id) {
+        session.user.id = user.id;
       }
       return session;
-    },
-    async jwt({ user, token }) {
-      if (user) {
-        token.uid = user.id;
-      }
-      return token;
     },
   },
 };
