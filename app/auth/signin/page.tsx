@@ -17,7 +17,7 @@ export default function SignIn() {
     // Check if user is already signed in
     getSession().then(session => {
       if (session) {
-        router.push('/');
+        router.push('/chat');
       }
     });
   }, [router]);
@@ -36,13 +36,13 @@ export default function SignIn() {
     if (result?.error) {
       setError("Invalid email or password");
     } else {
-      router.push("/");
+      router.push("/chat");
     }
     setLoading(false);
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
+    signIn("google", { callbackUrl: "/chat" });
   };
 
   return (

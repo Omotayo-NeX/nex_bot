@@ -20,7 +20,7 @@ export default function Signup() {
     // Check if user is already signed in
     getSession().then(session => {
       if (session) {
-        router.push('/');
+        router.push('/chat');
       }
     });
   }, [router]);
