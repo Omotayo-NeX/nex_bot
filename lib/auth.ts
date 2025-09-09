@@ -113,7 +113,7 @@ export const authOptions: NextAuthOptions = {
           });
           
           if (dbUser) {
-            session.user.plan = dbUser.plan || 'Free';
+            session.user.plan = dbUser.plan || 'free';
             session.user.chat_used_today = dbUser.chat_used_today || 0;
             session.user.videos_generated_this_week = dbUser.videos_generated_this_week || 0;
             session.user.voice_minutes_this_week = dbUser.voice_minutes_this_week || 0;
@@ -121,7 +121,7 @@ export const authOptions: NextAuthOptions = {
             session.user.emailVerified = dbUser.emailVerified;
           } else {
             // Fallback defaults to prevent blank pages
-            session.user.plan = 'Free';
+            session.user.plan = 'free';
             session.user.chat_used_today = 0;
             session.user.videos_generated_this_week = 0;
             session.user.voice_minutes_this_week = 0;
@@ -130,7 +130,7 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           console.error('Session callback error:', error);
           // Fallback defaults to prevent blank pages
-          session.user.plan = 'Free';
+          session.user.plan = 'free';
           session.user.chat_used_today = 0;
           session.user.videos_generated_this_week = 0;
           session.user.voice_minutes_this_week = 0;
