@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
       console.log(`📊 [Chat API] ${requestId} Usage check result:`, {
         allowed: accessCheck.allowed,
         usage: accessCheck.usage,
-        limit: accessCheck.limit
+        message: accessCheck.message
       });
     } catch (error: any) {
       console.error(`❌ [Chat API] ${requestId} USAGE CHECK ERROR:`, {

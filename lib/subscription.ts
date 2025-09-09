@@ -32,10 +32,10 @@ export async function getUserSubscription(userId?: string): Promise<UserSubscrip
 
     if (!user) return null;
 
-    const planType = (user.plan?.charAt(0).toUpperCase() + user.plan?.slice(1) || 'Free') as PlanType;
+    const planType = (user.plan || 'free') as PlanType;
     const now = new Date();
     const isActive = !user.plan_expires_at || user.plan_expires_at > now;
-    const hasAccess = planType === 'Free' || (isActive && user.subscriptionStatus === 'active');
+    const hasAccess = planType === 'free' || (isActive && user.subscriptionStatus === 'active');
 
     return {
       plan: planType,
@@ -63,7 +63,7 @@ export async function checkFeatureAccess(
   const { plan, hasAccess: subscriptionActive } = subscription;
 
   // Check if subscription is active
-  if (!subscriptionActive && plan !== 'Free') {
+  if (!subscriptionActive && plan !== 'free') {
     return { 
       hasAccess: false, 
       reason: 'Subscription expired', 
@@ -74,7 +74,7 @@ export async function checkFeatureAccess(
   // Feature-specific access checks
   switch (feature) {
     case 'advanced_ai':
-      if (plan === 'Free') {
+      if (plan === 'free') {
         return { 
           hasAccess: false, 
           reason: 'Advanced AI features require Pro or Business plan', 
@@ -85,7 +85,7 @@ export async function checkFeatureAccess(
     
     case 'video':
       // All plans have some video access, but with different limits
-      if (plan === 'Free') {
+      if (plan === 'free') {
         // Check daily/weekly limits in your usage checking logic
         return { hasAccess: true };
       }
@@ -125,7 +125,7 @@ export async function checkUsageLimits(
       return { canUse: false, remaining: 0, limit: 0 };
     }
 
-    const planType = (user.plan?.charAt(0).toUpperCase() + user.plan?.slice(1) || 'Free') as PlanType;
+    const planType = (user.plan || 'free') as PlanType;
     const planConfig = PLANS[planType];
 
     switch (feature) {
