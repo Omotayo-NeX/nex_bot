@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkFeatureAccess, incrementUsage } from '@/lib/usage-tracking';
+import { getToken } from 'next-auth/jwt';
 
 // Voice ID mappings for ElevenLabs voices
 const VOICE_IDS = {
@@ -16,40 +18,24 @@ const VOICE_IDS = {
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const token = await getToken({ req });
+    if (!token || !token.id) {
       return NextResponse.json(
         { error: 'Authentication required. Please sign in to use voice generation.' },
         { status: 401 }
       );
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({ 
-      where: { email: session.user.email } 
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found. Please try signing in again.' },
-        { status: 401 }
-      );
-    }
-
-    // Check rate limit (rolling 24-hour window)
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-    const requestCount = await prisma.voiceRequest.count({
-      where: {
-        userId: user.id,
-        createdAt: { gte: cutoff },
-      },
-    });
-
-    if (requestCount >= 10) {
-      return NextResponse.json(
-        { error: 'Daily limit of 10 voice generations reached. Limit resets in 24 hours from your first request today.' },
-        { status: 429 }
-      );
+    // Check feature access and usage limits
+    const accessCheck = await checkFeatureAccess(token.id as string, 'voice');
+    if (!accessCheck.allowed) {
+      console.log(`🚫 [Voice API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      return NextResponse.json({ 
+        error: accessCheck.message,
+        isLimitReached: true,
+        currentUsage: accessCheck.usage,
+        upgradeRequired: true
+      }, { status: 403 });
     }
 
     // Get request body
@@ -80,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Log the voice request
     await prisma.voiceRequest.create({
-      data: { userId: user.id },
+      data: { userId: token.id as string },
     });
 
     // Generate voice with ElevenLabs
@@ -141,6 +127,14 @@ export async function POST(req: NextRequest) {
 
     // Get the audio stream
     const audioBuffer = await response.arrayBuffer();
+
+    // Estimate voice duration in minutes (rough approximation: ~150 words per minute)
+    const wordCount = text.split(/\s+/).length;
+    const estimatedMinutes = Math.max(1, Math.ceil(wordCount / 150)); // Minimum 1 minute
+
+    // Increment usage counter for successful voice generation
+    await incrementUsage(token.id as string, 'voice', estimatedMinutes);
+    console.log(`✅ [Usage] Voice usage incremented by ${estimatedMinutes} minutes for user ${token.id}`);
 
     // Return the audio file
     return new NextResponse(audioBuffer, {

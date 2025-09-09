@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { executeMarketingTool } from '../../../lib/marketing/tools';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 import { getKnowledgeContext, shouldUseKnowledge, formatKnowledgeSources, validateKnowledgeSetup } from '../../../lib/knowledge/retrieval';
+import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
+import { getToken } from 'next-auth/jwt';
 
 // export const runtime = 'edge'; // Temporarily disabled for knowledge retrieval testing
 
@@ -66,6 +68,33 @@ export async function POST(req: NextRequest) {
   try {
     console.log('🚀 [Chat API] Request received');
     
+    // Check authentication
+    const token = await getToken({ req });
+    if (!token || !token.id) {
+      return new Response(JSON.stringify({ 
+        error: 'Authentication required',
+        response: 'Please sign in to use the chat feature.'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check feature access and usage limits
+    const accessCheck = await checkFeatureAccess(token.id as string, 'chat');
+    if (!accessCheck.allowed) {
+      console.log(`🚫 [Chat API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      return new Response(JSON.stringify({ 
+        error: accessCheck.message,
+        isLimitReached: true,
+        currentUsage: accessCheck.usage,
+        upgradeRequired: true
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Get client IP for rate limiting
     const clientIP = getClientIP(req);
     
@@ -291,6 +320,10 @@ IMPORTANT:
     if (hasKnowledge && knowledgeSources.length > 0) {
       assistantMessage += formatKnowledgeSources(knowledgeSources);
     }
+
+    // Increment usage counter for successful chat
+    await incrementUsage(token.id as string, 'chat', 1);
+    console.log(`✅ [Chat API] Usage incremented for user ${token.id}`);
 
     console.log('📤 [Chat API] Sending complete response to client');
     return new Response(JSON.stringify({ 

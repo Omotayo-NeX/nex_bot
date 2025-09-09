@@ -41,16 +41,24 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(uuid()) @map("id") @db.Uuid
-  name          String?   @map("name")
-  email         String?   @unique @map("email")
-  password      String?   @map("password") // For credentials login
-  createdAt     DateTime  @default(now()) @map("created_at")
-  emailVerified DateTime? @map("email_verified")
-  image         String?   @map("image")
-  accounts      Account[]
-  sessions      Session[]
-  voiceRequests VoiceRequest[]
+  id                        String         @id @default(uuid()) @map("id") @db.Uuid
+  name                      String?        @map("name")
+  email                     String?        @unique @map("email")
+  password                  String?        @map("password") // For credentials login
+  createdAt                 DateTime       @default(now()) @map("created_at")
+  emailVerified             DateTime?      @map("email_verified")
+  image                     String?        @map("image")
+  // Subscription fields
+  plan                      String         @default("Free") @map("plan")
+  chat_used_today           Int            @default(0) @map("chat_used_today")
+  videos_generated_this_week Int           @default(0) @map("videos_generated_this_week")
+  voice_minutes_this_week   Int            @default(0) @map("voice_minutes_this_week")
+  plan_expires_at           DateTime?      @map("plan_expires_at")
+  paystack_customer_id      String?        @map("paystack_customer_id")
+  last_reset_date           DateTime       @default(now()) @map("last_reset_date")
+  accounts                  Account[]
+  sessions                  Session[]
+  voiceRequests             VoiceRequest[]
 
   @@map("User")
 }

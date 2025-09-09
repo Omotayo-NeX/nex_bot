@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 import { requireEmailVerification } from '../../../lib/auth-middleware';
+import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
+import { getToken } from 'next-auth/jwt';
 
 // Type definitions for provider responses
 interface ImageGenerationResponse {
@@ -152,6 +154,27 @@ export async function POST(req: NextRequest) {
       return authError;
     }
 
+    // Get user token for usage tracking
+    const token = await getToken({ req });
+    if (!token || !token.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Check feature access and usage limits
+    const accessCheck = await checkFeatureAccess(token.id as string, 'video');
+    if (!accessCheck.allowed) {
+      console.log(`🚫 [Image API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      return NextResponse.json({ 
+        error: accessCheck.message,
+        isLimitReached: true,
+        currentUsage: accessCheck.usage,
+        upgradeRequired: true
+      }, { status: 403 });
+    }
+
     // Get client IP for rate limiting
     const clientIP = getClientIP(req);
     
@@ -220,6 +243,10 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Increment usage counter for successful image generation
+    await incrementUsage(token.id as string, 'video', 1);
+    console.log(`✅ [Usage] Video usage incremented for user ${token.id}`);
 
     // Success response
     console.log(`✅ [${provider.toUpperCase()}] Image generated successfully for prompt: ${prompt.substring(0, 50)}...`);

@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Settings, MessageSquare, Image, Code2, Thermometer } from 'lucide-react';
+import { Settings, MessageSquare, Image, Code2, Thermometer, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import UsageDashboard from '@/components/UsageDashboard';
 
 interface RightSidebarProps {
   selectedModel: string;
@@ -11,7 +12,7 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ selectedModel, onModelChange, temperature, onTemperatureChange }: RightSidebarProps) {
-  const [activeTab, setActiveTab] = useState<'chat' | 'images' | 'code'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'images' | 'code' | 'usage'>('chat');
 
   const models = [
     { id: 'nex-gpt-4', name: 'NeX GPT-4', description: 'Most capable model' },
@@ -23,6 +24,7 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
     { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
     { id: 'images' as const, label: 'Images', icon: Image },
     { id: 'code' as const, label: 'Code', icon: Code2 },
+    { id: 'usage' as const, label: 'Usage', icon: BarChart3 },
   ];
 
   return (
@@ -200,6 +202,16 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'usage' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <UsageDashboard />
           </motion.div>
         )}
       </div>
