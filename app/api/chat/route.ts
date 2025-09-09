@@ -147,12 +147,9 @@ export async function POST(req: NextRequest) {
     // Check if the user is requesting specific marketing tools (but not if it's a continue request)
     const toolResponse = !isContinueRequest ? detectAndExecuteMarketingTool(lastMessage) : null;
     if (toolResponse) {
-      const chunks = chunkMessage(toolResponse);
-      console.log('🔧 [Chat API] Marketing tool response generated');
+      console.log('🔧 [Chat API] Marketing tool complete response generated');
       return new Response(JSON.stringify({ 
-        response: chunks[0],
-        hasMore: chunks.length > 1,
-        chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
+        response: toolResponse // Return complete marketing tool response without chunking
       }), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -267,7 +264,7 @@ IMPORTANT:
         messages: [systemMessage, ...contextMessages],
         stream: false,
         temperature: 0.7,
-        max_tokens: hasKnowledge ? 2500 : 2000, // More tokens when using knowledge
+        max_tokens: hasKnowledge ? 4000 : 3500, // Increased tokens for complete responses
       }),
     });
 
@@ -295,14 +292,9 @@ IMPORTANT:
       assistantMessage += formatKnowledgeSources(knowledgeSources);
     }
 
-    // Chunk the response for conversational flow
-    const chunks = chunkMessage(assistantMessage);
-    
-    console.log('📤 [Chat API] Sending response to client');
+    console.log('📤 [Chat API] Sending complete response to client');
     return new Response(JSON.stringify({ 
-      response: chunks[0], // Return first chunk - changed from 'message' to 'response'
-      hasMore: chunks.length > 1,
-      chunks: chunks.length > 1 ? chunks.slice(1) : undefined,
+      response: assistantMessage, // Return complete response without chunking
       // Include knowledge metadata for debugging/analytics
       _metadata: hasKnowledge ? {
         hasKnowledge: true,

@@ -72,7 +72,9 @@ export default function ChatBubble({ message, index }: ChatBubbleProps) {
           >
             {/* Message Text */}
             <div className={`prose ${isUser ? 'prose-invert' : ''} max-w-none`}>
-              <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">
+              <p className={`whitespace-pre-wrap leading-relaxed text-sm md:text-base ${
+                isUser ? 'text-white' : 'text-white opacity-100'
+              }`}>
                 {message.content}
               </p>
             </div>

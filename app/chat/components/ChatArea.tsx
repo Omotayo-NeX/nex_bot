@@ -353,18 +353,9 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               <span>Listening... Speak now</span>
             </motion.p>
-          ) : (
-            <p className="text-xs text-gray-500">
-              Press Shift+Enter for new line • Click 🎤 for voice input
-            </p>
-          )}
+          ) : null}
         </div>
       </motion.div>
-
-      {/* Footer */}
-      <footer className="text-center text-gray-400 text-sm py-4 border-t border-gray-700/50 bg-gray-900/50">
-        Powered by NeX Consulting Ltd
-      </footer>
     </div>
   );
 }
