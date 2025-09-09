@@ -64,8 +64,18 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) return url
+      // Handle verification redirects specifically
+      if (url.includes('verify-email') || url.includes('email_not_verified')) {
+        return `${baseUrl}/verify-email`
+      }
+      
+      // If it's a relative URL starting with /, prepend baseUrl
       if (url.startsWith("/")) return `${baseUrl}${url}`
+      
+      // If it's already an absolute URL within our domain, return it
+      if (url.startsWith(baseUrl)) return url
+      
+      // Default redirect after successful login
       return `${baseUrl}/chat`
     },
     async jwt({ token, user }) {
@@ -88,10 +98,43 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.emailVerified = token.emailVerified as Date | null;
         
-        // For unverified users, return a minimal session that can be checked on client
-        if (!token.emailVerified) {
-          // Keep minimal session data for verification flow
-          session.user.emailVerified = null;
+        // Fetch complete user data including plan for complete session
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { 
+              plan: true,
+              chat_used_today: true,
+              videos_generated_this_week: true,
+              voice_minutes_this_week: true,
+              plan_expires_at: true,
+              emailVerified: true
+            }
+          });
+          
+          if (dbUser) {
+            session.user.plan = dbUser.plan || 'Free';
+            session.user.chat_used_today = dbUser.chat_used_today || 0;
+            session.user.videos_generated_this_week = dbUser.videos_generated_this_week || 0;
+            session.user.voice_minutes_this_week = dbUser.voice_minutes_this_week || 0;
+            session.user.plan_expires_at = dbUser.plan_expires_at;
+            session.user.emailVerified = dbUser.emailVerified;
+          } else {
+            // Fallback defaults to prevent blank pages
+            session.user.plan = 'Free';
+            session.user.chat_used_today = 0;
+            session.user.videos_generated_this_week = 0;
+            session.user.voice_minutes_this_week = 0;
+            session.user.plan_expires_at = null;
+          }
+        } catch (error) {
+          console.error('Session callback error:', error);
+          // Fallback defaults to prevent blank pages
+          session.user.plan = 'Free';
+          session.user.chat_used_today = 0;
+          session.user.videos_generated_this_week = 0;
+          session.user.voice_minutes_this_week = 0;
+          session.user.plan_expires_at = null;
         }
       }
       return session;

@@ -86,8 +86,8 @@ export default function ChatPage() {
       return;
     }
     
-    // Check if user's email is verified
-    if (session.user && !session.user.emailVerified) {
+    // Check if user's email is verified - handle both null and undefined cases
+    if (session.user && session.user.emailVerified === null) {
       router.replace('/verify-email');
       return;
     }
@@ -120,7 +120,23 @@ export default function ChatPage() {
   }
 
   if (!session) {
-    return null;
+    return (
+      <div className="h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-white text-lg font-medium"
+          >
+            Redirecting to sign in...
+          </motion.p>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
