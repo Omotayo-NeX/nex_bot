@@ -21,7 +21,7 @@ export default function PricingPage() {
       return;
     }
 
-    if (planId === 'Free') {
+    if (planId === 'free') {
       toast.info('You are already on the Free plan');
       return;
     }
@@ -30,11 +30,10 @@ export default function PricingPage() {
     
     try {
       // Redirect to Paystack checkout
-      const response = await fetch(`/api/paystack/checkout?plan=${planId.toLowerCase()}`, {
+      const response = await fetch('/api/paystack/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: session.user.email,
           plan: planId
         }),
       });
@@ -148,13 +147,13 @@ export default function PricingPage() {
                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                     plan.popular
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-purple-500/25'
-                      : plan.id === 'Free'
+                      : plan.id === 'free'
                       ? 'bg-gray-700/50 hover:bg-gray-700 text-white'
                       : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/25'
                   }`}
                 >
                   {loading === plan.id ? 'Processing...' : 
-                   plan.id === 'Free' ? 'Current Plan' : 'Upgrade Now'}
+                   plan.id === 'free' ? 'Current Plan' : 'Upgrade Now'}
                 </button>
               </div>
 

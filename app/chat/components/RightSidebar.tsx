@@ -1,8 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { Settings, MessageSquare, Image, Code2, Thermometer, BarChart3 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Settings, MessageSquare, Image, Code2, Thermometer, BarChart3, Crown, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import UsageDashboard from '@/components/UsageDashboard';
+import { PLANS, type PlanType } from '@/lib/plans';
 
 interface RightSidebarProps {
   selectedModel: string;
@@ -12,7 +15,27 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ selectedModel, onModelChange, temperature, onTemperatureChange }: RightSidebarProps) {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'chat' | 'images' | 'code' | 'usage'>('chat');
+  const [userPlan, setUserPlan] = useState<PlanType>('free');
+  
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserPlan();
+    }
+  }, [session]);
+
+  const fetchUserPlan = async () => {
+    try {
+      const response = await fetch('/api/user/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setUserPlan(data.plan);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user plan:', error);
+    }
+  };
 
   const models = [
     { id: 'nex-gpt-4', name: 'NeX GPT-4', description: 'Most capable model' },
@@ -116,6 +139,62 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
                     </span>
                     <span>Creative</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Subscription Management Card */}
+            <div className="bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50">
+              <div className="flex items-center space-x-2 mb-4">
+                <Crown className="w-5 h-5 text-yellow-400" />
+                <h3 className="text-lg font-semibold text-white">Subscription</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">{PLANS[userPlan]?.name || 'Free Plan'}</p>
+                    <p className="text-gray-400 text-sm">
+                      {userPlan === 'free' ? 'Current Plan' : 'Active Subscription'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white font-bold">
+                      ₦{PLANS[userPlan]?.price.naira.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      {userPlan === 'free' ? 'Forever' : 'Monthly'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {userPlan === 'free' ? (
+                    <Link 
+                      href="/pricing"
+                      className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200"
+                    >
+                      <Crown className="w-4 h-4" />
+                      Upgrade
+                    </Link>
+                  ) : (
+                    <>
+                      <Link 
+                        href="/pricing"
+                        className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-700/50 hover:bg-gray-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Manage
+                      </Link>
+                      <Link 
+                        href="/pricing"
+                        className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200"
+                      >
+                        <Crown className="w-4 h-4" />
+                        Upgrade
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

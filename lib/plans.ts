@@ -1,4 +1,5 @@
-export type PlanType = 'Free' | 'Pro' | 'Business';
+export type PlanType = 'free' | 'pro' | 'enterprise';
+export type PlanDisplay = 'Free' | 'Pro' | 'Enterprise';
 
 export interface PlanLimits {
   chatPerDay: number;
@@ -22,8 +23,8 @@ export interface Plan {
 }
 
 export const PLANS: Record<PlanType, Plan> = {
-  Free: {
-    id: 'Free',
+  free: {
+    id: 'free',
     name: 'Free Plan',
     price: { naira: 0, usd: 0 },
     billing: 'Forever',
@@ -42,8 +43,8 @@ export const PLANS: Record<PlanType, Plan> = {
       ]
     }
   },
-  Pro: {
-    id: 'Pro',
+  pro: {
+    id: 'pro',
     name: 'Pro Plan',
     price: { naira: 10000, usd: 10 },
     billing: 'Monthly',
@@ -64,9 +65,9 @@ export const PLANS: Record<PlanType, Plan> = {
       ]
     }
   },
-  Business: {
-    id: 'Business',
-    name: 'Business Plan',
+  enterprise: {
+    id: 'enterprise',
+    name: 'Enterprise Plan',
     price: { naira: 40000, usd: 40 },
     billing: 'Monthly',
     paystack_amount: 4000000, // ₦40,000 in kobo

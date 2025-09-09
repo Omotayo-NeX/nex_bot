@@ -90,14 +90,14 @@ export default function UsageDashboard() {
           <div>
             <h3 className="font-semibold text-white">{currentPlan.name}</h3>
             <p className="text-sm text-gray-400">
-              {usage.plan === 'Free' ? 'Current Plan' : 
+              {usage.plan === 'free' ? 'Current Plan' : 
                usage.plan_expires_at ? `Expires ${new Date(usage.plan_expires_at).toLocaleDateString()}` : 
                'Active'}
             </p>
           </div>
         </div>
         
-        {usage.plan === 'Free' && (
+        {usage.plan === 'free' && (
           <Link 
             href="/pricing"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105"
@@ -188,7 +188,7 @@ export default function UsageDashboard() {
         (currentPlan.limits.chatPerDay !== -1 && usage.chat_used_today >= currentPlan.limits.chatPerDay) ||
         (currentPlan.limits.videosPerWeek !== -1 && usage.videos_generated_this_week >= currentPlan.limits.videosPerWeek) ||
         (currentPlan.limits.voiceMinutesPerWeek !== -1 && usage.voice_minutes_this_week >= currentPlan.limits.voiceMinutesPerWeek)
-      ) && usage.plan !== 'Business' && (
+      ) && usage.plan !== 'enterprise' && (
         <div className="bg-yellow-900/30 border border-yellow-600/30 rounded-lg p-4">
           <h4 className="font-medium text-yellow-200 mb-2">Limits Reached</h4>
           <p className="text-sm text-yellow-300 mb-3">

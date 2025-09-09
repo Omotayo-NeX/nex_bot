@@ -65,70 +65,195 @@ function chunkMessage(message: string): string[] {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const isDev = process.env.NODE_ENV === 'development';
+  
   try {
-    console.log('🚀 [Chat API] Request received');
+    console.log(`🚀 [Chat API] ${requestId} Request received`);
     
-    // Check authentication
+    // 1. ENVIRONMENT VARIABLES VALIDATION
+    const requiredEnvVars = {
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      DATABASE_URL: process.env.DATABASE_URL
+    };
+    
+    const missingVars = Object.entries(requiredEnvVars)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+      
+    if (missingVars.length > 0) {
+      const error = `Missing environment variables: ${missingVars.join(', ')}`;
+      console.error(`❌ [Chat API] ${requestId} ENV ERROR: ${error}`);
+      
+      return new Response(JSON.stringify({
+        error: 'Server configuration error',
+        response: 'The server is not properly configured. Please contact support.',
+        details: isDev ? { missingVars, error } : undefined,
+        requestId
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    
+    console.log(`✅ [Chat API] ${requestId} Environment variables validated`);
+    
+    // 2. AUTHENTICATION CHECK
     const token = await getToken({ req });
     if (!token || !token.id) {
+      console.log(`🚫 [Chat API] ${requestId} Authentication failed - no token or user ID`);
       return new Response(JSON.stringify({ 
         error: 'Authentication required',
-        response: 'Please sign in to use the chat feature.'
+        response: 'Please sign in to use the chat feature.',
+        requestId
       }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log(`✅ [Chat API] ${requestId} User authenticated: ${token.id}`);
 
-    // Check feature access and usage limits
-    const accessCheck = await checkFeatureAccess(token.id as string, 'chat');
+    // 3. FEATURE ACCESS AND USAGE LIMITS CHECK
+    let accessCheck;
+    try {
+      accessCheck = await checkFeatureAccess(token.id as string, 'chat');
+      console.log(`📊 [Chat API] ${requestId} Usage check result:`, {
+        allowed: accessCheck.allowed,
+        usage: accessCheck.usage,
+        limit: accessCheck.limit
+      });
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} USAGE CHECK ERROR:`, {
+        error: error.message,
+        stack: isDev ? error.stack : undefined,
+        userId: token.id
+      });
+      
+      return new Response(JSON.stringify({
+        error: 'Usage check failed',
+        response: 'Unable to verify your usage limits. Please try again.',
+        details: isDev ? { error: error.message, stack: error.stack } : undefined,
+        requestId
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    
     if (!accessCheck.allowed) {
-      console.log(`🚫 [Chat API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      console.log(`🚫 [Chat API] ${requestId} Feature access denied for user ${token.id}: ${accessCheck.message}`);
       return new Response(JSON.stringify({ 
         error: accessCheck.message,
+        response: `You have reached your chat limit. ${accessCheck.message}`,
         isLimitReached: true,
         currentUsage: accessCheck.usage,
-        upgradeRequired: true
+        upgradeRequired: true,
+        requestId
       }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Get client IP for rate limiting
+    // 4. RATE LIMITING CHECK
     const clientIP = getClientIP(req);
+    let rateLimit;
+    try {
+      rateLimit = await checkRateLimit(clientIP);
+      if (isDev) {
+        console.log(`🚦 [Chat API] ${requestId} Rate limit check:`, {
+          ip: clientIP,
+          success: rateLimit.success,
+          remaining: rateLimit.remaining || 'N/A'
+        });
+      }
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} RATE LIMIT ERROR:`, {
+        error: error.message,
+        stack: isDev ? error.stack : undefined,
+        ip: clientIP
+      });
+      
+      // Continue without rate limiting if it fails - don't block the user
+      console.log(`⚠️ [Chat API] ${requestId} Continuing without rate limiting due to error`);
+    }
     
-    // Check rate limits
-    const rateLimit = await checkRateLimit(clientIP);
-    if (!rateLimit.success) {
-      console.log(`🚫 [Chat API] Rate limit exceeded for ${clientIP}: ${rateLimit.error}`);
+    if (rateLimit && !rateLimit.success) {
+      console.log(`🚫 [Chat API] ${requestId} Rate limit exceeded for ${clientIP}: ${rateLimit.error}`);
       return new Response(JSON.stringify({ 
         error: rateLimit.error,
+        response: 'Too many requests. Please wait a moment before trying again.',
         isRateLimit: true,
         type: rateLimit.type,
         reset: rateLimit.reset instanceof Date ? rateLimit.reset.toISOString() : rateLimit.reset,
+        requestId
       }), {
         status: 429,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const body = await req.json();
-    console.log('📝 [Chat API] Request body:', JSON.stringify(body, null, 2));
-    
-    // Handle both old format (single message) and new format (messages array)
-    let messages, lastMessage;
-    if (body.message) {
-      // Single message format from your current chat interface
-      lastMessage = body.message;
-      messages = [{ role: 'user', content: lastMessage }];
-    } else {
-      // Messages array format
-      messages = body?.messages || [];
-      lastMessage = messages[messages.length - 1]?.content || '';
+    // 5. REQUEST BODY PARSING AND VALIDATION
+    let body, messages, lastMessage, selectedModel, temperature;
+    try {
+      body = await req.json();
+      
+      if (isDev) {
+        console.log(`📝 [Chat API] ${requestId} Request body:`, JSON.stringify(body, null, 2));
+      }
+      
+      // Handle both old format (single message) and new format (messages array)
+      if (body.message) {
+        // Single message format from your current chat interface
+        lastMessage = body.message;
+        messages = [{ role: 'user', content: lastMessage }];
+      } else {
+        // Messages array format
+        messages = body?.messages || [];
+        lastMessage = messages[messages.length - 1]?.content || '';
+      }
+      
+      selectedModel = body.model || 'gpt-4o-mini';
+      temperature = body.temperature || 0.7;
+      
+      if (!lastMessage || !lastMessage.trim()) {
+        console.log(`🚫 [Chat API] ${requestId} Empty message received`);
+        return new Response(JSON.stringify({
+          error: 'Empty message',
+          response: 'Please enter a message to continue.',
+          requestId
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.log(`💬 [Chat API] ${requestId} Processing message:`, {
+        messageLength: lastMessage.length,
+        model: selectedModel,
+        temperature,
+        messagePreview: lastMessage.substring(0, 100) + (lastMessage.length > 100 ? '...' : '')
+      });
+      
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} REQUEST PARSING ERROR:`, {
+        error: error.message,
+        stack: isDev ? error.stack : undefined
+      });
+      
+      return new Response(JSON.stringify({
+        error: 'Invalid request format',
+        response: 'Invalid request data. Please refresh the page and try again.',
+        details: isDev ? { error: error.message } : undefined,
+        requestId
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-    
-    console.log('💬 [Chat API] Processing message:', lastMessage);
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -184,7 +309,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 🧠 RAG KNOWLEDGE RETRIEVAL
+    // 6. RAG KNOWLEDGE RETRIEVAL
     let knowledgeContext = '';
     let knowledgeSources: string[] = [];
     let hasKnowledge = false;
@@ -192,7 +317,7 @@ export async function POST(req: NextRequest) {
     // Only use knowledge for relevant queries and if not a continue request
     if (!isContinueRequest && shouldUseKnowledge(lastMessage) && validateKnowledgeSetup()) {
       try {
-        console.log('🔍 [Chat API] Retrieving knowledge context...');
+        console.log(`🔍 [Chat API] ${requestId} Retrieving knowledge context...`);
         const knowledge = await getKnowledgeContext(lastMessage, {
           maxChunks: 4,
           similarityThreshold: 0.6
@@ -202,13 +327,23 @@ export async function POST(req: NextRequest) {
           knowledgeContext = knowledge.context;
           knowledgeSources = knowledge.sources;
           hasKnowledge = true;
-          console.log(`✅ [Chat API] Retrieved knowledge from sources: ${knowledgeSources.join(', ')}`);
+          console.log(`✅ [Chat API] ${requestId} Retrieved knowledge from sources: ${knowledgeSources.join(', ')}`);
         } else {
-          console.log('📭 [Chat API] No relevant knowledge found');
+          console.log(`📭 [Chat API] ${requestId} No relevant knowledge found`);
         }
       } catch (error: any) {
-        console.error('❌ [Chat API] Knowledge retrieval failed:', error);
+        console.error(`❌ [Chat API] ${requestId} KNOWLEDGE RETRIEVAL ERROR:`, {
+          error: error.message,
+          stack: isDev ? error.stack : undefined,
+          query: lastMessage.substring(0, 100)
+        });
+        
         // Continue without knowledge - don't fail the request
+        console.log(`⚠️ [Chat API] ${requestId} Continuing without knowledge due to error`);
+      }
+    } else if (!validateKnowledgeSetup()) {
+      if (isDev) {
+        console.log(`⚠️ [Chat API] ${requestId} Knowledge system not properly configured`);
       }
     }
 
@@ -281,69 +416,205 @@ IMPORTANT:
       content: systemContent,
     };
 
-    console.log(`🤖 [Chat API] Calling OpenAI API... ${hasKnowledge ? '(with knowledge context)' : '(without knowledge)'}`);
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
+    // 7. OPENAI API CALL
+    console.log(`🤖 [Chat API] ${requestId} Calling OpenAI API:`, {
+      model: selectedModel,
+      temperature,
+      hasKnowledge,
+      messageCount: contextMessages.length,
+      maxTokens: hasKnowledge ? 4000 : 3500
+    });
+    
+    let response, data;
+    try {
+      const requestBody = {
+        model: selectedModel,
         messages: [systemMessage, ...contextMessages],
         stream: false,
-        temperature: 0.7,
-        max_tokens: hasKnowledge ? 4000 : 3500, // Increased tokens for complete responses
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ [Chat API] OpenAI API error:', response.status, response.statusText, errorText);
+        temperature: temperature,
+        max_tokens: hasKnowledge ? 4000 : 3500,
+      };
+      
+      if (isDev) {
+        console.log(`📤 [Chat API] ${requestId} OpenAI request:`, {
+          ...requestBody,
+          messages: requestBody.messages.map((msg, idx) => ({
+            role: msg.role,
+            contentLength: msg.content.length,
+            contentPreview: msg.content.substring(0, 100) + '...'
+          }))
+        });
+      }
+      
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let parsedError;
+        try {
+          parsedError = JSON.parse(errorText);
+        } catch {
+          parsedError = { message: errorText };
+        }
+        
+        console.error(`❌ [Chat API] ${requestId} OPENAI API ERROR:`, {
+          status: response.status,
+          statusText: response.statusText,
+          error: parsedError,
+          requestId
+        });
+        
+        // Handle specific OpenAI error types
+        let errorMessage = "I'm experiencing technical difficulties. Please try again in a moment.";
+        let errorType = 'api_error';
+        
+        if (response.status === 401) {
+          errorMessage = "API authentication failed. Please contact support.";
+          errorType = 'auth_error';
+        } else if (response.status === 429) {
+          errorMessage = "OpenAI quota exceeded. Please try again later or contact support.";
+          errorType = 'quota_exceeded';
+        } else if (response.status === 400) {
+          errorMessage = "Invalid request to AI service. Please try a different message.";
+          errorType = 'bad_request';
+        } else if (response.status >= 500) {
+          errorMessage = "AI service is temporarily unavailable. Please try again in a few moments.";
+          errorType = 'service_unavailable';
+        }
+        
+        return new Response(JSON.stringify({
+          error: `OpenAI API error: ${response.status}`,
+          response: errorMessage,
+          errorType,
+          details: isDev ? { 
+            status: response.status, 
+            statusText: response.statusText,
+            openaiError: parsedError 
+          } : undefined,
+          requestId
+        }), { 
+          status: response.status >= 500 ? 502 : response.status,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      
+      data = await response.json();
+      
+      if (isDev) {
+        console.log(`📥 [Chat API] ${requestId} OpenAI response:`, {
+          id: data.id,
+          model: data.model,
+          usage: data.usage,
+          finishReason: data.choices?.[0]?.finish_reason,
+          responseLength: data.choices?.[0]?.message?.content?.length || 0
+        });
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} OPENAI REQUEST ERROR:`, {
+        error: error.message,
+        stack: isDev ? error.stack : undefined,
+        name: error.name,
+        requestId
+      });
+      
       return new Response(JSON.stringify({
-        error: `OpenAI API error: ${response.status} ${response.statusText}`,
-        response: "I'm experiencing technical difficulties. Please try again in a moment."
+        error: 'OpenAI request failed',
+        response: "I'm unable to process your request right now. Please check your internet connection and try again.",
+        errorType: 'network_error',
+        details: isDev ? { error: error.message, name: error.name } : undefined,
+        requestId
       }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const data = await response.json();
-    console.log('✅ [Chat API] OpenAI API response received');
+    // 8. PROCESS OPENAI RESPONSE
+    let assistantMessage = data.choices?.[0]?.message?.content;
     
-    let assistantMessage =
-      data.choices[0]?.message?.content ||
-      "I'm here to help you grow your business. How can NeX assist you today?";
+    if (!assistantMessage) {
+      console.error(`❌ [Chat API] ${requestId} No content in OpenAI response:`, {
+        choices: data.choices,
+        finishReason: data.choices?.[0]?.finish_reason,
+        requestId
+      });
+      
+      assistantMessage = "I'm here to help you grow your business. How can NeX assist you today?";
+    }
 
     // Add knowledge sources to the response if used
     if (hasKnowledge && knowledgeSources.length > 0) {
       assistantMessage += formatKnowledgeSources(knowledgeSources);
     }
 
-    // Increment usage counter for successful chat
-    await incrementUsage(token.id as string, 'chat', 1);
-    console.log(`✅ [Chat API] Usage incremented for user ${token.id}`);
+    // 9. INCREMENT USAGE COUNTER
+    try {
+      await incrementUsage(token.id as string, 'chat', 1);
+      console.log(`✅ [Chat API] ${requestId} Usage incremented for user ${token.id}`);
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} USAGE INCREMENT ERROR:`, {
+        error: error.message,
+        stack: isDev ? error.stack : undefined,
+        userId: token.id
+      });
+      
+      // Don't fail the request if usage increment fails
+      console.log(`⚠️ [Chat API] ${requestId} Continuing despite usage increment failure`);
+    }
 
-    console.log('📤 [Chat API] Sending complete response to client');
+    // 10. SUCCESS RESPONSE
+    console.log(`📤 [Chat API] ${requestId} Sending successful response:`, {
+      responseLength: assistantMessage.length,
+      hasKnowledge,
+      sourcesCount: knowledgeSources.length,
+      usage: data.usage
+    });
+    
     return new Response(JSON.stringify({ 
-      response: assistantMessage, // Return complete response without chunking
-      // Include knowledge metadata for debugging/analytics
-      _metadata: hasKnowledge ? {
-        hasKnowledge: true,
+      response: assistantMessage,
+      requestId,
+      // Include metadata for debugging/analytics
+      _metadata: {
+        hasKnowledge,
         sources: knowledgeSources,
-        chunksUsed: knowledgeContext ? knowledgeContext.split('\n\n').length : 0
-      } : { hasKnowledge: false }
+        chunksUsed: knowledgeContext ? knowledgeContext.split('\n\n').length : 0,
+        model: selectedModel,
+        usage: data.usage,
+        timestamp: new Date().toISOString()
+      }
     }), {
       headers: {
         'Content-Type': 'application/json',
       },
     });
-  } catch (error) {
-    console.error('❌ [Chat API] Unexpected error:', error);
+  } catch (error: any) {
+    // 11. UNEXPECTED ERROR HANDLER
+    console.error(`❌ [Chat API] ${requestId} UNEXPECTED ERROR:`, {
+      error: error.message,
+      stack: isDev ? error.stack : undefined,
+      name: error.name,
+      requestId,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(JSON.stringify({
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       response: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
+      errorType: 'unexpected_error',
+      requestId,
+      details: isDev ? { 
+        error: error.message, 
+        name: error.name,
+        stack: error.stack 
+      } : undefined,
       isError: true,
     }), { 
       status: 500,

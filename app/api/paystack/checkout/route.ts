@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (planType === 'Free') {
+    if (planType === 'free') {
       return NextResponse.json(
         { error: 'Cannot checkout for free plan' },
         { status: 400 }

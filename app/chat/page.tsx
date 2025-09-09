@@ -41,6 +41,12 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
+      console.log('🚀 [Chat Frontend] Sending message:', {
+        message: messageText.trim(),
+        model: selectedModel,
+        temperature: temperature
+      });
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,21 +57,56 @@ export default function ChatPage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get response');
-      
       const data = await response.json();
+      console.log('📨 [Chat Frontend] API response:', {
+        status: response.status,
+        ok: response.ok,
+        requestId: data.requestId,
+        hasError: !!data.error,
+        errorType: data.errorType
+      });
+
+      let assistantContent: string;
+      
+      if (!response.ok) {
+        // Handle different types of errors with appropriate user messages
+        if (data.errorType === 'quota_exceeded') {
+          assistantContent = data.response || 'OpenAI quota exceeded. Please try again later or contact support.';
+        } else if (data.errorType === 'auth_error') {
+          assistantContent = data.response || 'Authentication failed. Please refresh the page and sign in again.';
+        } else if (data.isLimitReached) {
+          assistantContent = data.response || `You have reached your chat limit. ${data.error}`;
+        } else if (data.isRateLimit) {
+          assistantContent = data.response || 'Too many requests. Please wait a moment before trying again.';
+        } else if (data.response) {
+          // Use the specific error response from the API
+          assistantContent = data.response;
+        } else {
+          // Fallback for unknown errors
+          assistantContent = `Error: ${data.error || 'Something went wrong. Please try again.'}`;
+        }
+      } else {
+        assistantContent = data.response || 'Sorry, I could not process your request.';
+      }
+      
       const assistantMessage: Message = { 
         role: 'assistant', 
-        content: data.response || 'Sorry, I could not process your request.',
+        content: assistantContent,
         timestamp: Date.now()
       };
       
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
+      
+    } catch (error: any) {
+      console.error('❌ [Chat Frontend] Network/Request error:', {
+        error: error.message,
+        name: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+      
       const errorMessage: Message = { 
         role: 'assistant', 
-        content: 'Sorry, there was an error processing your request.',
+        content: 'Network error: Unable to connect to the server. Please check your internet connection and try again.',
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
