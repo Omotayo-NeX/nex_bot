@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { executeMarketingTool } from '../../../lib/marketing/tools';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
+import { getKnowledgeContext, shouldUseKnowledge, formatKnowledgeSources, validateKnowledgeSetup } from '../../../lib/knowledge/retrieval';
 
-export const runtime = 'edge';
+// export const runtime = 'edge'; // Temporarily disabled for knowledge retrieval testing
 
 // Function to split long messages into conversational chunks
 function chunkMessage(message: string): string[] {
@@ -157,9 +158,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const systemMessage = {
-      role: 'system',
-      content: `You are NeX AI, a conversational expert in digital marketing and AI automation, developed by Nex Consulting Limited.
+    // 🧠 RAG KNOWLEDGE RETRIEVAL
+    let knowledgeContext = '';
+    let knowledgeSources: string[] = [];
+    let hasKnowledge = false;
+
+    // Only use knowledge for relevant queries and if not a continue request
+    if (!isContinueRequest && shouldUseKnowledge(lastMessage) && validateKnowledgeSetup()) {
+      try {
+        console.log('🔍 [Chat API] Retrieving knowledge context...');
+        const knowledge = await getKnowledgeContext(lastMessage, {
+          maxChunks: 4,
+          similarityThreshold: 0.6
+        });
+        
+        if (knowledge.hasRelevantKnowledge) {
+          knowledgeContext = knowledge.context;
+          knowledgeSources = knowledge.sources;
+          hasKnowledge = true;
+          console.log(`✅ [Chat API] Retrieved knowledge from sources: ${knowledgeSources.join(', ')}`);
+        } else {
+          console.log('📭 [Chat API] No relevant knowledge found');
+        }
+      } catch (error: any) {
+        console.error('❌ [Chat API] Knowledge retrieval failed:', error);
+        // Continue without knowledge - don't fail the request
+      }
+    }
+
+    // Build system message with knowledge context
+    let systemContent = `You are NeX AI, a conversational expert in digital marketing and AI automation, developed by Nex Consulting Limited.
 
 COMPANY INFORMATION:
 - You are created by Nex Consulting Limited, a digital marketing and AI automation company
@@ -168,11 +196,32 @@ COMPANY INFORMATION:
 - The company specializes in digital marketing strategies, AI automation solutions, and business growth consulting
 - When users ask about your creator, the company, or need business consultation, refer them to Nex Consulting Limited
 
-CRITICAL CONVERSATION RULES:
+CRITICAL OUTPUT RULES:
+1. Always return your response in one complete block of text without cutting off or truncating
+   - Do not stop midway through lists or explanations
+   - Finish the entire response before sending it
+   - Complete all numbered items in lists (1, 2, 3, etc.)
+
+2. When the user requests a list:
+   - Enumerate all items fully and completely
+   - Do not stop early, even if the list is long
+   - Provide all requested items without truncation
+
+3. Formatting requirements:
+   - Use plain text with clear line breaks
+   - Avoid Markdown artifacts like **bold** or ## headers unless explicitly requested
+   - If emphasis is needed, use simple capitalization (IMPORTANT) instead of asterisks
+   - Keep spacing consistent and readable
+
+4. Delivery standards:
+   - Always output the final response as a single complete message block
+   - Do not break output after newlines or send partial responses
+   - Ensure responses are fully formed and complete
+
+CONVERSATION RULES:
 - ALWAYS provide direct, complete answers without asking for clarification unless the request is genuinely impossible to understand
-- If someone asks "give me 5 examples of automation," immediately provide 5 examples - do not ask what type of automation
+- If someone asks "give me 5 examples of automation," immediately provide all 5 examples - do not ask what type of automation
 - Be comprehensive and helpful in your responses
-- Use clean, conversational text without markdown formatting symbols like ** or ##
 - When continuing, seamlessly pick up where you left off - never restart or repeat content
 - Only ask clarifying questions when the user's request is truly ambiguous or impossible to answer
 - Provide practical, actionable information that helps users immediately
@@ -180,12 +229,33 @@ CRITICAL CONVERSATION RULES:
 
 RESPONSE FORMAT:
 - Use plain text with natural paragraph breaks
-- No markdown symbols (**, ##, etc.) - use conversational language instead
-- Keep responses organized but readable
-- Use proper spacing between ideas`,
+- Keep responses organized, readable, and complete
+- Use proper spacing between ideas
+- Prioritize clarity over decoration`;
+
+    // Add knowledge context if available
+    if (hasKnowledge) {
+      systemContent += `
+
+KNOWLEDGE BASE CONTEXT:
+The following information from your knowledge base is relevant to the user's question. Use this information to provide accurate, detailed answers. The knowledge comes from your training materials and expertise:
+
+${knowledgeContext}
+
+IMPORTANT: 
+- Use this knowledge to provide comprehensive, accurate answers
+- Integrate the information naturally into your response
+- Don't explicitly mention that you're using a knowledge base
+- If the knowledge doesn't fully answer the question, combine it with your general expertise
+- Provide practical, actionable advice based on this information`;
+    }
+
+    const systemMessage = {
+      role: 'system',
+      content: systemContent,
     };
 
-    console.log('🤖 [Chat API] Calling OpenAI API...');
+    console.log(`🤖 [Chat API] Calling OpenAI API... ${hasKnowledge ? '(with knowledge context)' : '(without knowledge)'}`);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -197,7 +267,7 @@ RESPONSE FORMAT:
         messages: [systemMessage, ...contextMessages],
         stream: false,
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: hasKnowledge ? 2500 : 2000, // More tokens when using knowledge
       }),
     });
 
@@ -216,9 +286,14 @@ RESPONSE FORMAT:
     const data = await response.json();
     console.log('✅ [Chat API] OpenAI API response received');
     
-    const assistantMessage =
+    let assistantMessage =
       data.choices[0]?.message?.content ||
       "I'm here to help you grow your business. How can NeX assist you today?";
+
+    // Add knowledge sources to the response if used
+    if (hasKnowledge && knowledgeSources.length > 0) {
+      assistantMessage += formatKnowledgeSources(knowledgeSources);
+    }
 
     // Chunk the response for conversational flow
     const chunks = chunkMessage(assistantMessage);
@@ -227,7 +302,13 @@ RESPONSE FORMAT:
     return new Response(JSON.stringify({ 
       response: chunks[0], // Return first chunk - changed from 'message' to 'response'
       hasMore: chunks.length > 1,
-      chunks: chunks.length > 1 ? chunks.slice(1) : undefined 
+      chunks: chunks.length > 1 ? chunks.slice(1) : undefined,
+      // Include knowledge metadata for debugging/analytics
+      _metadata: hasKnowledge ? {
+        hasKnowledge: true,
+        sources: knowledgeSources,
+        chunksUsed: knowledgeContext ? knowledgeContext.split('\n\n').length : 0
+      } : { hasKnowledge: false }
     }), {
       headers: {
         'Content-Type': 'application/json',
