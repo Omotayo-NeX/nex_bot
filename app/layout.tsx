@@ -3,7 +3,7 @@ import './globals.css'
 import { Providers } from '@/lib/providers'
 import { Toaster } from 'sonner'
 
-// Force deployment refresh
+// Force deployment refresh - v2
 
 export const metadata: Metadata = {
   title: 'NeX Bot - AI Assistant',
