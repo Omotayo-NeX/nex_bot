@@ -88,9 +88,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.emailVerified = token.emailVerified as Date | null;
         
-        // Redirect to verification page if email not verified
+        // For unverified users, return a minimal session that can be checked on client
         if (!token.emailVerified) {
-          // This will be handled by middleware or page-level checks
+          // Keep minimal session data for verification flow
+          session.user.emailVerified = null;
         }
       }
       return session;

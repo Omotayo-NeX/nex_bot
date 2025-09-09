@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 function VerifyEmailContent() {
   const router = useRouter();
@@ -39,20 +40,22 @@ function VerifyEmailContent() {
 
     setResending(true);
     try {
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session.user.email }),
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: session.user.email,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        },
       });
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        toast.success('Verification email sent! Please check your inbox');
+      if (error) {
+        console.error('Resend error:', error.message);
+        toast.error('Failed to resend verification email');
       } else {
-        toast.error(data.error || 'Failed to resend verification email');
+        toast.success('Verification email resent! Check your inbox.');
       }
     } catch (error) {
+      console.error('Network error:', error);
       toast.error('Network error. Please try again');
     } finally {
       setResending(false);

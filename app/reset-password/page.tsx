@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 function ResetPasswordContent() {
   const [password, setPassword] = useState('');
@@ -68,27 +69,35 @@ function ResetPasswordContent() {
     }
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          password,
-          accessToken,
-          refreshToken
-        }),
+      // Set the session with the tokens from the reset link
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
       });
 
-      const data = await response.json();
+      if (sessionError) {
+        console.error('Invalid or expired reset session:', sessionError);
+        toast.error('Invalid or expired reset link. Please request a new one.');
+        setLoading(false);
+        return;
+      }
 
-      if (response.ok) {
+      // Update the password using Supabase
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        toast.error(updateError.message || 'Failed to update password');
+      } else {
         toast.success('Password updated successfully! Redirecting to sign in...');
         setTimeout(() => {
           router.push('/auth/signin?message=password_reset_success');
         }, 2000);
-      } else {
-        toast.error(data.error || 'Failed to reset password');
       }
     } catch (error) {
+      console.error('Reset password error:', error);
       toast.error('Network error. Please try again');
     } finally {
       setLoading(false);

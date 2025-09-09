@@ -84,7 +84,7 @@ export default function ForgotPassword() {
 
               <div className="bg-yellow-900/30 border border-yellow-600/30 rounded-lg p-4 text-sm text-yellow-200">
                 <p className="font-medium mb-1">⏰ Link expires in 1 hour</p>
-                <p>If you don't see the email, check your spam folder.</p>
+                <p>If you don't see the email, check your spam folder. The reset link will redirect to your account.</p>
               </div>
             </div>
 
