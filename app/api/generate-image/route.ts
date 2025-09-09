@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
+import { requireEmailVerification } from '../../../lib/auth-middleware';
 
 // Type definitions for provider responses
 interface ImageGenerationResponse {
@@ -145,6 +146,12 @@ async function generateWithStability(prompt: string, apiKey: string): Promise<Im
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication and email verification
+    const authError = await requireEmailVerification(req);
+    if (authError) {
+      return authError;
+    }
+
     // Get client IP for rate limiting
     const clientIP = getClientIP(req);
     

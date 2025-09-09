@@ -10,6 +10,7 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -20,12 +21,23 @@ export default function SignIn() {
         router.push('/chat');
       }
     });
+    
+    // Check for success messages in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('verified') === 'true') {
+      setError('');  // Clear any existing errors
+      setSuccess('Email verified successfully! You can now sign in.');
+    } else if (urlParams.get('message') === 'password_reset_success') {
+      setError('');  // Clear any existing errors
+      setSuccess('Password updated successfully! You can now sign in with your new password.');
+    }
   }, [router]);
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
 
     const result = await signIn("credentials", {
       email,
@@ -73,6 +85,12 @@ export default function SignIn() {
               </div>
             )}
             
+            {success && (
+              <div className="p-3 bg-green-900/50 border border-green-600/50 rounded-lg text-green-200 text-sm">
+                {success}
+              </div>
+            )}
+            
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email address
@@ -89,9 +107,17 @@ export default function SignIn() {
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                  Password
+                </label>
+                <Link 
+                  href="/forgot-password" 
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"

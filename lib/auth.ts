@@ -71,14 +71,44 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        
+        // Check if user's email is verified
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { emailVerified: true, email: true }
+        });
+        
+        token.emailVerified = dbUser?.emailVerified;
+        token.email = dbUser?.email || user.email;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user && token?.id) {
         session.user.id = token.id as string;
+        session.user.emailVerified = token.emailVerified as Date | null;
+        
+        // Redirect to verification page if email not verified
+        if (!token.emailVerified) {
+          // This will be handled by middleware or page-level checks
+        }
       }
       return session;
+    },
+    async signIn({ user, account, profile, email, credentials }) {
+      if (account?.provider === "credentials") {
+        // Check if user's email is verified for credentials login
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          select: { emailVerified: true }
+        });
+        
+        if (!dbUser?.emailVerified) {
+          // Prevent sign in if email is not verified
+          return '/verify-email?error=email_not_verified';
+        }
+      }
+      return true;
     },
   },
 };

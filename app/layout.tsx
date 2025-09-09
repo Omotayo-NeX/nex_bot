@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/lib/providers'
+import { Toaster } from 'sonner'
 
 // Force deployment refresh
 
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body className="bg-zinc-50 text-zinc-900">
         <Providers session={undefined}>
           {children}
+          <Toaster />
         </Providers>
       </body>
     </html>

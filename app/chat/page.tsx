@@ -85,6 +85,12 @@ export default function ChatPage() {
       router.replace('/auth/signin');
       return;
     }
+    
+    // Check if user's email is verified
+    if (session.user && !session.user.emailVerified) {
+      router.replace('/verify-email');
+      return;
+    }
   }, [session, status, router]);
 
   if (status === 'loading') {
