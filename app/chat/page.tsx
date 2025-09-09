@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X } from 'lucide-react';
 import LeftSidebar from './components/LeftSidebar';
 import ChatArea from './components/ChatArea';
 import RightSidebar from './components/RightSidebar';
@@ -26,6 +27,7 @@ export default function ChatPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedModel, setSelectedModel] = useState('nex-gpt-4');
   const [temperature, setTemperature] = useState(0.7);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -116,28 +118,56 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gradient-to-b from-[#0d1117] to-[#1c1f26]">
+    <div className="h-screen flex overflow-hidden bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
+      {/* Mobile Hamburger Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-700/50 text-white hover:bg-gray-700/90 transition-colors"
+      >
+        {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Left Sidebar */}
-      <LeftSidebar 
-        onNewChat={handleNewChat}
-        onOpenPictureGenerator={() => setActiveModal('picture')}
-        onOpenVoiceGenerator={() => setActiveModal('voiceover')}
-      />
+      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out lg:transition-none`}>
+        <LeftSidebar 
+          onNewChat={handleNewChat}
+          onOpenPictureGenerator={() => setActiveModal('picture')}
+          onOpenVoiceGenerator={() => setActiveModal('voiceover')}
+          onCloseSidebar={() => setSidebarOpen(false)}
+        />
+      </div>
 
       {/* Main Chat Area */}
-      <ChatArea 
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      <div className="flex-1 flex">
+        <ChatArea 
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+        />
 
-      {/* Right Sidebar */}
-      <RightSidebar 
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        temperature={temperature}
-        onTemperatureChange={setTemperature}
-      />
+        {/* Right Sidebar - Hidden on mobile */}
+        <div className="hidden xl:block">
+          <RightSidebar 
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            temperature={temperature}
+            onTemperatureChange={setTemperature}
+          />
+        </div>
+      </div>
 
       {/* Modal Components */}
       <AnimatePresence>

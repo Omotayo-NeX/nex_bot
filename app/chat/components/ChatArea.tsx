@@ -228,54 +228,6 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                 I'm your AI assistant for digital marketing and automation. How can I help you today?
               </p>
               
-              {/* AI Tools Highlight Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full max-w-4xl">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
-                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105"
-                >
-                  <div className="flex items-center mb-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                      🖼️
-                    </div>
-                    <h3 className="text-lg font-bold">Picture Generator</h3>
-                  </div>
-                  <p className="text-white/90 text-sm">Generate stunning images with AI using DALL-E and Stability.ai</p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
-                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105"
-                >
-                  <div className="flex items-center mb-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                      🎤
-                    </div>
-                    <h3 className="text-lg font-bold">Voice Generator</h3>
-                  </div>
-                  <p className="text-white/90 text-sm">Convert text to natural speech with multiple AI voices</p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  className="p-6 rounded-2xl shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 transition-all transform hover:scale-105"
-                >
-                  <div className="flex items-center mb-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                      💬
-                    </div>
-                    <h3 className="text-lg font-bold">AI Chat</h3>
-                  </div>
-                  <p className="text-white/90 text-sm">Intelligent conversations for marketing and business growth</p>
-                </motion.div>
-              </div>
-
               {/* Quick Start Suggestions */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-4xl">
                 {suggestions.map((suggestion, index) => (
@@ -283,7 +235,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 + 0.1 * index, duration: 0.3 }}
+                    transition={{ delay: 0.2 + 0.1 * index, duration: 0.3 }}
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => startSuggestion(suggestion)}
