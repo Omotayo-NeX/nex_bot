@@ -11,9 +11,10 @@ interface ChatBubbleProps {
     timestamp: number;
   };
   index: number;
+  userName?: string;
 }
 
-export default function ChatBubble({ message, index }: ChatBubbleProps) {
+export default function ChatBubble({ message, index, userName }: ChatBubbleProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
 
@@ -57,7 +58,7 @@ export default function ChatBubble({ message, index }: ChatBubbleProps) {
         <div className={`relative flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
           {/* Timestamp */}
           <div className={`text-xs text-gray-500 mb-1 px-1 ${isUser ? 'text-right' : 'text-left'}`}>
-            {isUser ? 'You' : 'NeX AI'} • {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {isUser ? (userName || 'You') : 'NeX AI'} • {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
 
           {/* Message Content */}

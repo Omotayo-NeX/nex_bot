@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Image, Mic, Pin, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 
 interface LeftSidebarProps {
   onNewChat: () => void;
@@ -10,7 +12,21 @@ interface LeftSidebarProps {
   onCloseSidebar?: () => void;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  plan: string;
+}
+
 export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenVoiceGenerator, onCloseSidebar }: LeftSidebarProps) {
+  const { data: session } = useSession();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const [pinnedChats] = useState([
     { id: '1', title: 'Marketing Strategy Planning', timestamp: '2 hours ago' },
     { id: '2', title: 'Content Calendar Ideas', timestamp: '1 day ago' },
@@ -22,6 +38,89 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
     { id: '5', title: 'Website Analytics Review', timestamp: '1 week ago' },
     { id: '6', title: 'SEO Optimization Tips', timestamp: '2 weeks ago' },
   ]);
+
+  // Fetch user data
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserData();
+    }
+  }, [session]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/user/usage');
+      if (response.ok) {
+        const data = await response.json();
+        setUserData({
+          id: session?.user?.id || '',
+          name: session?.user?.name || 'User',
+          email: session?.user?.email || '',
+          emailVerified: data.emailVerified || false,
+          plan: data.plan || 'free'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      // Fallback to session data
+      setUserData({
+        id: session?.user?.id || '',
+        name: session?.user?.name || 'User',
+        email: session?.user?.email || '',
+        emailVerified: false,
+        plan: 'free'
+      });
+    }
+  };
+
+  const handleSendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      const response = await fetch('/api/auth/send-verification', {
+        method: 'POST'
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        alert('Verification email sent! Please check your inbox.');
+      } else {
+        alert(data.error || 'Failed to send verification email');
+      }
+    } catch (error) {
+      alert('Failed to send verification email');
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
+  const getPlanDisplayName = (plan: string) => {
+    switch (plan) {
+      case 'pro': return 'Pro Plan';
+      case 'enterprise': return 'Enterprise';
+      default: return 'Free Plan';
+    }
+  };
+
+  const getPlanColor = (plan: string) => {
+    switch (plan) {
+      case 'pro': return 'text-blue-400';
+      case 'enterprise': return 'text-purple-400';
+      default: return 'text-gray-400';
+    }
+  };
 
   return (
     <motion.div 
@@ -115,11 +214,123 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-700/50">
-        <p className="text-xs text-gray-500 text-center">
-          Powered by NeX AI Technology
-        </p>
+      {/* User Info Footer */}
+      <div className="p-4 border-t border-gray-700/50 relative" ref={dropdownRef}>
+        {userData ? (
+          <>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 text-left overflow-hidden">
+                <div className="font-medium text-sm truncate group-hover:text-white">
+                  {userData.name}
+                </div>
+                <div className={`text-xs ${getPlanColor(userData.plan)} truncate`}>
+                  {getPlanDisplayName(userData.plan)}
+                </div>
+              </div>
+              <Settings className="w-4 h-4 text-gray-500 group-hover:text-gray-300 flex-shrink-0" />
+            </button>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute bottom-full left-4 right-4 mb-2 bg-gray-800/95 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-2xl z-50"
+                >
+                  <div className="p-4">
+                    {/* Account Info */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-white mb-3 flex items-center">
+                        <User className="w-4 h-4 mr-2" />
+                        Account Info
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Name:</span>
+                          <span className="text-white">{userData.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Email:</span>
+                          <span className="text-white truncate ml-2">{userData.email}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Plan:</span>
+                          <span className={getPlanColor(userData.plan)}>{getPlanDisplayName(userData.plan)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Email Verification Status */}
+                    <div className="mb-4 p-3 rounded-lg bg-gray-900/50">
+                      <div className="flex items-start space-x-2 mb-2">
+                        <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
+                        <span className="text-sm font-medium text-white">Email Verification</span>
+                      </div>
+                      
+                      {userData.emailVerified ? (
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-sm text-green-400">Verified</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <AlertCircle className="w-4 h-4 text-yellow-500" />
+                            <span className="text-sm text-yellow-400">Not verified</span>
+                          </div>
+                          <button
+                            onClick={handleSendVerification}
+                            disabled={sendingVerification}
+                            className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white px-3 py-1.5 rounded-md transition-colors"
+                          >
+                            {sendingVerification ? 'Sending...' : 'Verify Email'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="space-y-1">
+                      <Link 
+                        href="/pricing"
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors text-sm"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <Crown className="w-4 h-4" />
+                        <span>{userData.plan === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}</span>
+                      </Link>
+                      
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          signOut({ callbackUrl: '/' });
+                        }}
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors text-sm"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        ) : (
+          <div className="flex items-center justify-center space-x-2 text-gray-500">
+            <User className="w-4 h-4 animate-pulse" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        )}
       </div>
     </motion.div>
   );

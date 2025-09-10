@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { getUserUsage } from '@/lib/usage-tracking';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,12 +24,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Get email verification status
+    const user = await prisma.user.findUnique({
+      where: { id: token.id as string },
+      select: { emailVerified: true }
+    });
+
     return NextResponse.json({
       plan: usage.plan,
       chat_used_today: usage.chat_used_today,
       videos_generated_this_week: usage.videos_generated_this_week,
       voice_minutes_this_week: usage.voice_minutes_this_week,
       plan_expires_at: usage.plan_expires_at,
+      emailVerified: user?.emailVerified ? true : false,
     });
 
   } catch (error) {

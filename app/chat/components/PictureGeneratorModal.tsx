@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Download, Image as ImageIcon, Loader2, RefreshCw, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Download, Image as ImageIcon, Loader2, RefreshCw, Copy, ChevronLeft, ChevronRight, Mail, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
@@ -32,6 +32,8 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
   const [imageHistory, setImageHistory] = useState<ImageHistory[]>([]);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [showImageModal, setShowImageModal] = useState(false);
+  const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
 
   const models = [
     { id: 'dall-e-3', name: 'DALL·E 3', description: 'Most advanced OpenAI model' },
@@ -76,6 +78,14 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Check if it's an email verification error
+        if (errorData.requiresVerification || response.status === 403) {
+          setEmailVerificationRequired(true);
+          setError(null); // Clear generic error since we'll show verification UI
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to generate image');
       }
 
@@ -91,6 +101,7 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
       
       setGeneratedImage(imageData);
       setRevisedPrompt(data.revised_prompt || data.revisedPrompt || '');
+      setEmailVerificationRequired(false); // Clear verification requirement on success
 
       // Add to history (use the primary image URL)
       const imageUrl = data.imageUrl || data.url || `data:image/png;base64,${data.b64_json}`;
@@ -153,6 +164,27 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
   const regenerateImage = () => {
     if (prompt) {
       generateImage();
+    }
+  };
+
+  const handleSendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      const response = await fetch('/api/auth/send-verification', {
+        method: 'POST'
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setError('Verification email sent! Please check your inbox and verify your email, then try again.');
+        setEmailVerificationRequired(false);
+      } else {
+        setError(data.error || 'Failed to send verification email');
+      }
+    } catch (error) {
+      setError('Failed to send verification email');
+    } finally {
+      setSendingVerification(false);
     }
   };
 
@@ -261,6 +293,51 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
               </div>
             </div>
           </div>
+
+          {/* Email Verification Required */}
+          {emailVerificationRequired && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 bg-yellow-900/20 border-2 border-yellow-600/30 rounded-2xl shadow-lg"
+            >
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-yellow-600/20 rounded-full flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-yellow-400" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-yellow-100 mb-2">Email Verification Required</h3>
+                  <p className="text-yellow-200 mb-4 text-sm leading-relaxed">
+                    To use the AI Picture Generator, you need to verify your email address. This helps us prevent abuse and ensures you receive important updates about your generated images.
+                  </p>
+                  <div className="flex items-center space-x-4">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSendVerification}
+                      disabled={sendingVerification}
+                      className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                    >
+                      {sendingVerification ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                      <span>{sendingVerification ? 'Sending...' : 'Send Verification Email'}</span>
+                    </motion.button>
+                    <button
+                      onClick={() => setEmailVerificationRequired(false)}
+                      className="text-yellow-300 hover:text-yellow-200 text-sm underline transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Error Display */}
           {error && (

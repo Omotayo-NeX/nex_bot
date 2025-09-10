@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Square, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import ChatBubble from './ChatBubble';
 
 interface Message {
@@ -18,6 +19,7 @@ interface ChatAreaProps {
 }
 
 export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAreaProps) {
+  const { data: session } = useSession();
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
@@ -254,7 +256,12 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
           ) : (
             <div className="space-y-1">
               {messages.map((message, index) => (
-                <ChatBubble key={index} message={message} index={index} />
+                <ChatBubble 
+                  key={index} 
+                  message={message} 
+                  index={index} 
+                  userName={session?.user?.name || undefined}
+                />
               ))}
               
               {/* Loading Indicator */}
