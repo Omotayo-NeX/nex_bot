@@ -103,16 +103,44 @@ export async function POST(req: NextRequest) {
     console.error('🔢 Error code:', error.code);
     console.error('📊 Error meta:', error.meta);
     
+    // Determine specific error message based on error type
+    let userMessage = "Failed to create account. Please try again.";
+    let statusCode = 500;
+    
+    if (error.code === 'P1001') {
+      // Database connection error
+      userMessage = "Database connection failed. Please try again later.";
+      console.error('🔌 Database connection error - Check DATABASE_URL configuration');
+    } else if (error.code === 'P2002') {
+      // Unique constraint violation (user already exists)
+      userMessage = "An account with this email already exists. Please try signing in instead.";
+      statusCode = 409;
+    } else if (error.code === 'P1008') {
+      // Operation timeout
+      userMessage = "Request timed out. Please try again.";
+      statusCode = 408;
+    } else if (error.message?.includes('email') && error.message?.includes('unique')) {
+      // Email already exists
+      userMessage = "An account with this email already exists. Please try signing in instead.";
+      statusCode = 409;
+    } else if (error.message?.includes('password')) {
+      // Password related error
+      userMessage = "Invalid password format. Please try a different password.";
+      statusCode = 400;
+    }
+    
     return NextResponse.json(
       { 
-        error: "Failed to create account. Please try again.",
+        error: userMessage,
+        type: error.code || 'unknown_error',
         details: process.env.NODE_ENV === 'development' ? {
           message: error.message,
           code: error.code,
-          meta: error.meta
+          meta: error.meta,
+          stack: error.stack
         } : undefined
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }
