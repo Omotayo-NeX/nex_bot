@@ -111,6 +111,16 @@ export async function POST(req: NextRequest) {
       // Database connection error
       userMessage = "Database connection failed. Please try again later.";
       console.error('🔌 Database connection error - Check DATABASE_URL configuration');
+      console.error('🔌 DATABASE_URL host:', process.env.DATABASE_URL?.match(/@([^:]+)/)?.[1] || 'not found');
+      console.error('🔌 Full connection error:', error.message);
+    } else if (error.code === 'P1003') {
+      // Database does not exist error
+      userMessage = "Database configuration error. Please contact support.";
+      console.error('🗄️ Database does not exist error:', error.message);
+    } else if (error.code === 'P1017') {
+      // Server has closed the connection
+      userMessage = "Database connection lost. Please try again.";
+      console.error('📡 Database server closed connection:', error.message);
     } else if (error.code === 'P2002') {
       // Unique constraint violation (user already exists)
       userMessage = "An account with this email already exists. Please try signing in instead.";
