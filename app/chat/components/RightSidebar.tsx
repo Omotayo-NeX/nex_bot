@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Settings, MessageSquare, Image, Code2, Thermometer, BarChart3, Crown, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
-import UsageDashboard from '@/components/UsageDashboard';
+import UsageDisplay from '@/components/UsageDisplay';
 import { PLANS, type PlanType } from '@/lib/plans';
 
 interface RightSidebarProps {
@@ -290,7 +290,7 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <UsageDashboard />
+            <UsageDisplay />
           </motion.div>
         )}
       </div>

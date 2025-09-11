@@ -105,25 +105,51 @@ export async function incrementUsage(
   amount: number = 1
 ): Promise<boolean> {
   try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    // Update both the old User table (for backwards compatibility) and new UsageStats table
     const updateData: any = {};
+    let usageStatsField: string;
 
     switch (feature) {
       case 'chat':
         updateData.chat_used_today = { increment: amount };
+        usageStatsField = 'messagesUsed';
         break;
       case 'video':
         updateData.videos_generated_this_week = { increment: amount };
+        usageStatsField = 'videosGenerated';
         break;
       case 'voice':
         updateData.voice_minutes_this_week = { increment: amount };
+        usageStatsField = 'voiceMinutes';
         break;
       default:
         return false;
     }
 
+    // Update old User table for backwards compatibility
     await prisma.user.update({
       where: { id: userId },
       data: updateData,
+    });
+
+    // Update or create new UsageStats record for today
+    await prisma.usageStats.upsert({
+      where: {
+        userId_date: {
+          userId: userId,
+          date: today
+        }
+      },
+      update: {
+        [usageStatsField]: { increment: amount }
+      },
+      create: {
+        userId: userId,
+        date: today,
+        [usageStatsField]: amount
+      }
     });
 
     return true;

@@ -61,6 +61,7 @@ model User {
   accounts                  Account[]
   sessions                  Session[]
   voiceRequests             VoiceRequest[]
+  usageStats                UsageStats[]
   updatedAt                 DateTime       @default(now()) @updatedAt @map("updated_at")
 
   @@map("User")
@@ -82,4 +83,20 @@ model VoiceRequest {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("VoiceRequest")
+}
+
+model UsageStats {
+  id                Int      @id @default(autoincrement()) @map("id")
+  userId            String   @map("user_id") @db.Uuid
+  date              String   @map("date") // Format: YYYY-MM-DD
+  messagesUsed      Int      @default(0) @map("messages_used")
+  imagesGenerated   Int      @default(0) @map("images_generated")
+  voiceMinutes      Int      @default(0) @map("voice_minutes")
+  videosGenerated   Int      @default(0) @map("videos_generated")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("UsageStats")
 }
