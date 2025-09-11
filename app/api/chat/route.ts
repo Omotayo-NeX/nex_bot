@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 import { getKnowledgeContext, shouldUseKnowledge, formatKnowledgeSources, validateKnowledgeSetup } from '../../../lib/knowledge/retrieval';
 import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
 import { getToken } from 'next-auth/jwt';
+import { prisma } from '../../../lib/prisma';
 
 // export const runtime = 'edge'; // Temporarily disabled for knowledge retrieval testing
 
