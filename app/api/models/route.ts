@@ -4,6 +4,7 @@ import { getToken } from 'next-auth/jwt';
 // Helper functions for model information
 function getModelDisplayName(modelId: string): string {
   const displayNames: { [key: string]: string } = {
+    'gpt-4.1-mini': 'GPT-4.1 Mini',
     'gpt-4o-mini': 'GPT-4o Mini',
     'gpt-4o': 'GPT-4o',
     'gpt-4-turbo': 'GPT-4 Turbo',
@@ -16,6 +17,7 @@ function getModelDisplayName(modelId: string): string {
 
 function getModelDescription(modelId: string): string {
   const descriptions: { [key: string]: string } = {
+    'gpt-4.1-mini': 'Latest optimized model - most recommended',
     'gpt-4o-mini': 'Most capable and efficient model - recommended',
     'gpt-4o': 'Advanced reasoning and creativity',
     'gpt-4-turbo': 'Fast and capable, optimized for speed',
@@ -28,6 +30,7 @@ function getModelDescription(modelId: string): string {
 
 function getModelContextWindow(modelId: string): string {
   const contextWindows: { [key: string]: string } = {
+    'gpt-4.1-mini': '128K tokens',
     'gpt-4o-mini': '128K tokens',
     'gpt-4o': '128K tokens',
     'gpt-4-turbo': '128K tokens',
@@ -41,12 +44,20 @@ function getModelContextWindow(modelId: string): string {
 function getFallbackModels() {
   return [
     {
+      id: 'gpt-4.1-mini',
+      name: 'GPT-4.1 Mini',
+      description: 'Latest optimized model - most recommended',
+      provider: 'openai',
+      contextWindow: '128K tokens',
+      recommended: true
+    },
+    {
       id: 'gpt-4o-mini',
       name: 'GPT-4o Mini',
       description: 'Most capable and efficient model - recommended',
       provider: 'openai',
       contextWindow: '128K tokens',
-      recommended: true
+      recommended: false
     },
     {
       id: 'gpt-4o',
@@ -78,55 +89,106 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch available models from OpenAI API
+    // First try to fetch from published prompts API
     let availableModels = [];
+    let defaultModel = 'gpt-4o-mini';
     
     try {
-      const openAIResponse = await fetch('https://api.openai.com/v1/models', {
+      const promptsResponse = await fetch('https://api.openai.com/v1/prompts', {
         headers: {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
       });
 
-      if (openAIResponse.ok) {
-        const data = await openAIResponse.json();
+      if (promptsResponse.ok) {
+        const promptsData = await promptsResponse.json();
+        console.log('Published prompts data:', promptsData);
         
-        // Filter and format models we want to show to users
-        const relevantModels = data.data
-          .filter((model: any) => 
-            model.id.includes('gpt-4') || 
-            model.id.includes('gpt-3.5') ||
-            model.id === 'gpt-4o-mini' ||
-            model.id === 'gpt-4o'
-          )
-          .sort((a: any, b: any) => {
-            // Sort by preference: gpt-4o-mini first, then others
-            const order = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
-            return order.indexOf(a.id) - order.indexOf(b.id);
-          })
-          .map((model: any) => ({
-            id: model.id,
-            name: getModelDisplayName(model.id),
-            description: getModelDescription(model.id),
+        if (promptsData.data && Array.isArray(promptsData.data)) {
+          // Parse prompts and extract models
+          const promptModels = promptsData.data.map((prompt: any) => ({
+            id: prompt.model || 'gpt-4o-mini',
+            name: prompt.name || getModelDisplayName(prompt.model || 'gpt-4o-mini'),
+            description: prompt.description || getModelDescription(prompt.model || 'gpt-4o-mini'),
             provider: 'openai',
-            contextWindow: getModelContextWindow(model.id),
-            recommended: model.id === 'gpt-4o-mini'
+            contextWindow: getModelContextWindow(prompt.model || 'gpt-4o-mini'),
+            recommended: prompt.name?.toLowerCase().includes('nex') || false,
+            promptId: prompt.id
           }));
 
-        availableModels = relevantModels.length > 0 ? relevantModels : getFallbackModels();
+          if (promptModels.length > 0) {
+            availableModels = promptModels;
+            // Set default to NeX AI prompt if available
+            const nexPrompt = promptModels.find((model: any) => model.name?.toLowerCase().includes('nex'));
+            if (nexPrompt) {
+              defaultModel = nexPrompt.id;
+            }
+          }
+        }
       } else {
-        console.warn('OpenAI models API failed, using fallback models');
-        availableModels = getFallbackModels();
+        console.warn('Published prompts API failed, falling back to standard models');
       }
     } catch (error) {
-      console.warn('Error fetching OpenAI models, using fallback:', error);
-      availableModels = getFallbackModels();
+      console.warn('Error fetching published prompts, falling back to standard models:', error);
+    }
+
+    // If no published prompts found, fallback to standard OpenAI models
+    if (availableModels.length === 0) {
+      try {
+        const openAIResponse = await fetch('https://api.openai.com/v1/models', {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (openAIResponse.ok) {
+          const data = await openAIResponse.json();
+          
+          // Filter and format models we want to show to users
+          const relevantModels = data.data
+            .filter((model: any) => 
+              model.id.includes('gpt-4') || 
+              model.id.includes('gpt-3.5') ||
+              model.id === 'gpt-4o-mini' ||
+              model.id === 'gpt-4o' ||
+              model.id === 'gpt-4.1-mini'  // Add gpt-4.1-mini if available
+            )
+            .sort((a: any, b: any) => {
+              // Sort by preference: gpt-4.1-mini first, then gpt-4o-mini, then others
+              const order = ['gpt-4.1-mini', 'gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+              return order.indexOf(a.id) - order.indexOf(b.id);
+            })
+            .map((model: any) => ({
+              id: model.id,
+              name: getModelDisplayName(model.id),
+              description: getModelDescription(model.id),
+              provider: 'openai',
+              contextWindow: getModelContextWindow(model.id),
+              recommended: model.id === 'gpt-4.1-mini' || model.id === 'gpt-4o-mini'
+            }));
+
+          availableModels = relevantModels.length > 0 ? relevantModels : getFallbackModels();
+          
+          // Update default model if gpt-4.1-mini is available
+          const gpt41Mini = relevantModels.find((model: any) => model.id === 'gpt-4.1-mini');
+          if (gpt41Mini) {
+            defaultModel = 'gpt-4.1-mini';
+          }
+        } else {
+          console.warn('OpenAI models API failed, using fallback models');
+          availableModels = getFallbackModels();
+        }
+      } catch (error) {
+        console.warn('Error fetching OpenAI models, using fallback:', error);
+        availableModels = getFallbackModels();
+      }
     }
 
     return NextResponse.json({
       models: availableModels,
-      default: 'gpt-4o-mini'
+      default: defaultModel
     });
 
   } catch (error: any) {
