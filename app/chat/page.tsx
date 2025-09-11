@@ -127,11 +127,8 @@ export default function ChatPage() {
       return;
     }
     
-    // Check if user's email is verified - handle both null and undefined cases
-    if (session.user && session.user.emailVerified === null) {
-      router.replace('/verify-email');
-      return;
-    }
+    // TODO: Email verification check can be re-enabled later when billing or premium features are introduced
+    // For now, all users can access chat immediately after signup
   }, [session, status, router]);
 
   if (status === 'loading') {

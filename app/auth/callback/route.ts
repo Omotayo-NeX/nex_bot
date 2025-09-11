@@ -17,29 +17,31 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL('/auth/signin?error=verification_failed', request.url));
       }
 
-      if (user && user.email_confirmed_at) {
-        console.log('✅ Email verified for user:', user.email);
+      // TODO: Email verification can be re-enabled later when billing or premium features are introduced
+      // For now, all users are treated as verified immediately
+      if (user) {
+        console.log('✅ User authenticated:', user.email);
         
-        // Update the user's emailVerified field in Prisma
+        // Update the user's emailVerified field in Prisma (all users are auto-verified)
         try {
           await prisma.user.update({
             where: { id: user.id },
             data: { 
-              emailVerified: new Date(user.email_confirmed_at),
+              emailVerified: new Date(), // Auto-verify all users
             },
           });
-          console.log('✅ User email verification updated in Prisma');
+          console.log('✅ User auto-verified in Prisma');
         } catch (prismaError) {
           console.error('❌ Failed to update user in Prisma:', prismaError);
-          // Don't fail the verification if Prisma update fails
+          // Don't fail the authentication if Prisma update fails
         }
         
-        // Redirect to sign in with success message
-        return NextResponse.redirect(new URL(`/auth/signin?verified=true`, request.url));
+        // Redirect to chat page directly (no verification needed)
+        return NextResponse.redirect(new URL('/chat', request.url));
       }
       
-      // If email is not confirmed yet
-      return NextResponse.redirect(new URL('/verify-email', request.url));
+      // If no user data
+      return NextResponse.redirect(new URL('/auth/signin?error=no_user', request.url));
       
     } catch (error) {
       console.error('Error in auth callback:', error);

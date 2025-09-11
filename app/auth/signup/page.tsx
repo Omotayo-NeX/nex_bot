@@ -66,17 +66,12 @@ export default function Signup() {
       const data = await response.json();
 
       if (response.ok) {
-        if (data.emailSent) {
-          setMessage("Account created successfully! Please check your email to verify your account before signing in.");
-          setTimeout(() => {
-            router.push("/verify-email");
-          }, 3000);
-        } else {
-          setMessage("Account created successfully! Redirecting to sign in...");
-          setTimeout(() => {
-            router.push("/auth/signin");
-          }, 2000);
-        }
+        // TODO: Email verification can be re-enabled later when billing or premium features are introduced
+        // For now, all users can sign in immediately after account creation
+        setMessage("Account created successfully! Redirecting to sign in...");
+        setTimeout(() => {
+          router.push("/auth/signin");
+        }, 2000);
       } else {
         setError(data.error || "Failed to create account");
       }

@@ -24,7 +24,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
   const { data: session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [sendingVerification, setSendingVerification] = useState(false);
+  // const [sendingVerification, setSendingVerification] = useState(false); // TODO: Re-enable when email verification is needed
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [pinnedChats] = useState([
@@ -86,25 +86,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
     }
   };
 
-  const handleSendVerification = async () => {
-    setSendingVerification(true);
-    try {
-      const response = await fetch('/api/auth/send-verification', {
-        method: 'POST'
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        alert('Verification email sent! Please check your inbox.');
-      } else {
-        alert(data.error || 'Failed to send verification email');
-      }
-    } catch (error) {
-      alert('Failed to send verification email');
-    } finally {
-      setSendingVerification(false);
-    }
-  };
+  // TODO: Email verification function can be re-enabled later when billing or premium features are introduced
 
   const getPlanDisplayName = (plan: string) => {
     switch (plan) {
@@ -269,34 +251,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
                       </div>
                     </div>
 
-                    {/* Email Verification Status */}
-                    <div className="mb-4 p-3 rounded-lg bg-gray-900/50">
-                      <div className="flex items-start space-x-2 mb-2">
-                        <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
-                        <span className="text-sm font-medium text-white">Email Verification</span>
-                      </div>
-                      
-                      {userData.emailVerified ? (
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-sm text-green-400">Verified</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <AlertCircle className="w-4 h-4 text-yellow-500" />
-                            <span className="text-sm text-yellow-400">Not verified</span>
-                          </div>
-                          <button
-                            onClick={handleSendVerification}
-                            disabled={sendingVerification}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white px-3 py-1.5 rounded-md transition-colors"
-                          >
-                            {sendingVerification ? 'Sending...' : 'Verify Email'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {/* TODO: Email verification UI can be re-enabled later when billing or premium features are introduced */}
 
                     {/* Quick Actions */}
                     <div className="space-y-1">

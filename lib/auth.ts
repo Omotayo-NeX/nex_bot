@@ -71,9 +71,8 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.includes('verify-email') || url.includes('email_not_verified')) {
-        return `${baseUrl}/verify-email`
-      }
+      // TODO: Email verification redirects can be re-enabled later when billing or premium features are introduced
+      // For now, redirect all users directly to chat
       if (url.startsWith("/")) return `${baseUrl}${url}`
       if (url.startsWith(baseUrl)) return url
       return `${baseUrl}/chat`
@@ -95,16 +94,8 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async signIn({ user, account, profile, email, credentials }) {
-      if (account?.provider === "credentials") {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-          select: { emailVerified: true }
-        });
-        
-        if (!dbUser?.emailVerified) {
-          return '/verify-email?error=email_not_verified';
-        }
-      }
+      // TODO: Email verification check can be re-enabled later when billing or premium features are introduced
+      // For now, all users can sign in immediately after account creation
       return true;
     },
   },
