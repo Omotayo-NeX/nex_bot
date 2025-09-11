@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       select: { 
         plan: true, 
         subscriptionStatus: true,
-        planExpiresAt: true 
+        plan_expires_at: true 
       }
     });
 
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       plan: planInfo.name,
       plan_key: user.plan,
       subscription_status: user.subscriptionStatus || 'inactive',
-      plan_expires_at: user.planExpiresAt?.toISOString() || null,
+      plan_expires_at: user.plan_expires_at?.toISOString() || null,
       
       // Usage percentages for UI
       chat_usage_percentage: planInfo.limits.chatPerDay === -1 ? 0 : Math.round(((todayUsage?.messagesUsed || 0) / planInfo.limits.chatPerDay) * 100),
