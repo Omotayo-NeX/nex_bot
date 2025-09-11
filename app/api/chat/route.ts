@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
     // 1. ENVIRONMENT VARIABLES VALIDATION
     const requiredEnvVars = {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      NEX_PROMPT_ID: process.env.NEX_PROMPT_ID,
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       DATABASE_URL: process.env.DATABASE_URL
@@ -347,59 +348,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build system message with knowledge context
-    let systemContent = `You are NeX AI, a conversational expert in digital marketing and AI automation, developed by Nex Consulting Limited.
+    // Note: System message is now handled by the published prompt
+    // We only add knowledge context as a system message if needed
 
-COMPANY INFORMATION:
-- You are created by Nex Consulting Limited, a digital marketing and AI automation company
-- Nex Consulting Limited is located in Abuja, Nigeria
-- Company website: nexconsultingltd.com
-- The company specializes in digital marketing strategies, AI automation solutions, and business growth consulting
-- When users ask about your creator, the company, or need business consultation, refer them to Nex Consulting Limited
-
-CRITICAL OUTPUT RULES:
-1. Always return your response in one complete block of text without cutting off or truncating
-   - Do not stop midway through lists or explanations
-   - Finish the entire response before sending it
-   - Complete all numbered items in lists (1, 2, 3, etc.)
-
-2. When the user requests a list:
-   - Enumerate all items fully and completely
-   - Do not stop early, even if the list is long
-   - Provide all requested items without truncation
-
-3. Formatting requirements:
-   - Use plain text with clear line breaks
-   - Avoid Markdown artifacts like **bold** or ## headers unless explicitly requested
-   - If emphasis is needed, use simple capitalization (IMPORTANT) instead of asterisks
-   - Keep spacing consistent and readable
-
-4. Delivery standards:
-   - Always output the final response as a single complete message block
-   - Do not break output after newlines or send partial responses
-   - Ensure responses are fully formed and complete
-
-CONVERSATION RULES:
-- ALWAYS provide direct, complete answers without asking for clarification unless the request is genuinely impossible to understand
-- If someone asks "give me 5 examples of automation," immediately provide all 5 examples - do not ask what type of automation
-- Be comprehensive and helpful in your responses
-- When continuing, seamlessly pick up where you left off - never restart or repeat content
-- Only ask clarifying questions when the user's request is truly ambiguous or impossible to answer
-- Provide practical, actionable information that helps users immediately
-- If users need advanced business consultation or want to work with experts, mention Nex Consulting Limited and their website
-
-RESPONSE FORMAT:
-- Use plain text with natural paragraph breaks
-- Keep responses organized, readable, and complete
-- Use proper spacing between ideas
-- Prioritize clarity over decoration`;
-
-    // Add knowledge context if available
-    if (hasKnowledge) {
-      systemContent += `
-
-KNOWLEDGE BASE CONTEXT:
-The following information from your knowledge base is relevant to the user's question. Use this information to provide accurate, detailed answers. The knowledge comes from your training materials and expertise:
+    // 7. OPENAI API CALL - Using Published Prompt
+    console.log(`🤖 [Chat API] ${requestId} Calling OpenAI Responses API with published prompt:`, {
+      promptId: process.env.NEX_PROMPT_ID,
+      hasKnowledge,
+      messageCount: contextMessages.length
+    });
+    
+    let response, data;
+    try {
+      // Prepare input messages for the published prompt
+      const inputMessages = [];
+      
+      // Add system message if we have knowledge context
+      if (hasKnowledge) {
+        inputMessages.push({
+          role: 'system',
+          content: `KNOWLEDGE BASE CONTEXT:
+The following information from your knowledge base is relevant to the user's question:
 
 ${knowledgeContext}
 
@@ -407,38 +376,26 @@ IMPORTANT:
 - Use this knowledge to provide comprehensive, accurate answers
 - Integrate the information naturally into your response
 - Don't explicitly mention that you're using a knowledge base
-- If the knowledge doesn't fully answer the question, combine it with your general expertise
-- Provide practical, actionable advice based on this information`;
-    }
-
-    const systemMessage = {
-      role: 'system',
-      content: systemContent,
-    };
-
-    // 7. OPENAI API CALL
-    console.log(`🤖 [Chat API] ${requestId} Calling OpenAI API:`, {
-      model: selectedModel,
-      temperature,
-      hasKnowledge,
-      messageCount: contextMessages.length,
-      maxTokens: hasKnowledge ? 4000 : 3500
-    });
-    
-    let response, data;
-    try {
+- If the knowledge doesn't fully answer the question, combine it with your general expertise`
+        });
+      }
+      
+      // Add conversation context
+      inputMessages.push(...contextMessages);
+      
       const requestBody = {
-        model: selectedModel,
-        messages: [systemMessage, ...contextMessages],
-        stream: false,
-        temperature: temperature,
-        max_tokens: hasKnowledge ? 4000 : 3500,
+        prompt: {
+          id: process.env.NEX_PROMPT_ID,
+          version: "1"
+        },
+        input: inputMessages
       };
       
       if (isDev) {
-        console.log(`📤 [Chat API] ${requestId} OpenAI request:`, {
-          ...requestBody,
-          messages: requestBody.messages.map((msg, idx) => ({
+        console.log(`📤 [Chat API] ${requestId} OpenAI Responses request:`, {
+          promptId: requestBody.prompt.id,
+          inputCount: requestBody.input.length,
+          inputPreview: requestBody.input.map((msg, idx) => ({
             role: msg.role,
             contentLength: msg.content.length,
             contentPreview: msg.content.substring(0, 100) + '...'
@@ -446,7 +403,7 @@ IMPORTANT:
         });
       }
       
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
+      response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -508,12 +465,10 @@ IMPORTANT:
       data = await response.json();
       
       if (isDev) {
-        console.log(`📥 [Chat API] ${requestId} OpenAI response:`, {
+        console.log(`📥 [Chat API] ${requestId} OpenAI Responses response:`, {
           id: data.id,
-          model: data.model,
-          usage: data.usage,
-          finishReason: data.choices?.[0]?.finish_reason,
-          responseLength: data.choices?.[0]?.message?.content?.length || 0
+          outputLength: data.output?.[0]?.content?.[0]?.text?.length || 0,
+          usage: data.usage
         });
       }
       
@@ -537,13 +492,12 @@ IMPORTANT:
       });
     }
 
-    // 8. PROCESS OPENAI RESPONSE
-    let assistantMessage = data.choices?.[0]?.message?.content;
+    // 8. PROCESS OPENAI RESPONSES API RESPONSE
+    let assistantMessage = data.output?.[0]?.content?.[0]?.text;
     
     if (!assistantMessage) {
-      console.error(`❌ [Chat API] ${requestId} No content in OpenAI response:`, {
-        choices: data.choices,
-        finishReason: data.choices?.[0]?.finish_reason,
+      console.error(`❌ [Chat API] ${requestId} No content in OpenAI Responses response:`, {
+        output: data.output,
         requestId
       });
       
