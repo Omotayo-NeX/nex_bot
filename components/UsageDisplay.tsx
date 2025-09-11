@@ -77,14 +77,14 @@ function ProgressBar({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">{label}</span>
+          <Icon className="h-4 w-4 text-gray-300" />
+          <span className="text-sm font-medium text-gray-200">{label}</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-300">
             {current}{unit} / {displayLimit}{unit}
           </span>
-          <span className="text-xs text-gray-400">({period})</span>
+          <span className="text-xs text-gray-500">({period})</span>
         </div>
       </div>
       
@@ -202,11 +202,11 @@ export default function UsageDisplay() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 text-white">
       {/* Header with Plan Info */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Usage Overview
           </h3>

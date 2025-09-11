@@ -200,8 +200,12 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       <div className="p-4 border-t border-gray-700/50 relative" ref={dropdownRef}>
         {userData ? (
           <>
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
+            <Link 
+              href="/settings"
+              onClick={() => {
+                setShowUserMenu(false);
+                if (onCloseSidebar) onCloseSidebar();
+              }}
               className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -216,6 +220,13 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
                 </div>
               </div>
               <Settings className="w-4 h-4 text-gray-500 group-hover:text-gray-300 flex-shrink-0" />
+            </Link>
+
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="absolute top-3 right-3 p-1 text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
             </button>
 
             {/* Dropdown Menu */}
@@ -255,6 +266,15 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
 
                     {/* Quick Actions */}
                     <div className="space-y-1">
+                      <Link 
+                        href="/settings"
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors text-sm"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </Link>
+                      
                       <Link 
                         href="/pricing"
                         className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors text-sm"

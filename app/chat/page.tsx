@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { useSettings } from '@/lib/contexts/SettingsContext';
 import LeftSidebar from './components/LeftSidebar';
 import ChatArea from './components/ChatArea';
-import RightSidebar from './components/RightSidebar';
 import PictureGeneratorModal from './components/PictureGeneratorModal';
 import VoiceoverGeneratorModal from './components/VoiceoverGeneratorModal';
 
@@ -21,12 +21,11 @@ type ModalType = 'picture' | 'voiceover' | null;
 export default function ChatPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { selectedModel, temperature } = useSettings();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
-  const [temperature, setTemperature] = useState(0.7);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSendMessage = async (messageText: string) => {
@@ -211,22 +210,12 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex">
+      <div className="flex-1">
         <ChatArea 
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
         />
-
-        {/* Right Sidebar - Hidden on mobile */}
-        <div className="hidden xl:block">
-          <RightSidebar 
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            temperature={temperature}
-            onTemperatureChange={setTemperature}
-          />
-        </div>
       </div>
 
       {/* Modal Components */}
