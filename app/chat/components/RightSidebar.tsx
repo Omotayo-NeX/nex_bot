@@ -38,8 +38,8 @@ export default function RightSidebar({ selectedModel, onModelChange, temperature
   };
 
   const models = [
-    { id: 'nex-gpt-4', name: 'NeX GPT-4', description: 'Most capable model' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Fast and efficient' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Most capable and efficient model' },
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Advanced reasoning and creativity' },
     { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Quick responses' },
   ];
 

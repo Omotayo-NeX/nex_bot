@@ -25,7 +25,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedModel, setSelectedModel] = useState('nex-gpt-4');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
   const [temperature, setTemperature] = useState(0.7);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
