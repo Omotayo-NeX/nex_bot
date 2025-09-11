@@ -51,3 +51,4 @@ yarn-error.log*
 /playwright/*
 
 /lib/generated/prisma
+tsconfig.tsbuildinfo
