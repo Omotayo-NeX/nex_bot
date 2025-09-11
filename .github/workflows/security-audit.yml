@@ -1,0 +1,203 @@
+name: 'Weekly Security Audit'
+
+on:
+  schedule:
+    # Run every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  security-audit:
+    name: 'Security Audit & Version Lock Check'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+        
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          
+      - name: 'Setup pnpm'
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.12.3'
+          
+      - name: 'Verify Version Lock'
+        id: version-check
+        run: |
+          echo "Checking for floating version ranges in package.json..."
+          
+          # Check for ^ or ~ in dependencies and devDependencies
+          if grep -E '"\^|"~' package.json; then
+            echo "❌ FLOATING VERSIONS DETECTED!"
+            echo "All package versions should be locked to exact versions (no ^ or ~)"
+            echo "floating_versions=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ All package versions are properly locked"
+            echo "floating_versions=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: 'Install dependencies'
+        run: pnpm install --frozen-lockfile
+        
+      - name: 'Run security audit'
+        id: audit
+        run: |
+          echo "Running pnpm audit..."
+          
+          # Run audit and capture results
+          if pnpm audit --json > audit-results.json 2>/dev/null; then
+            echo "✅ No vulnerabilities found"
+            echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+            echo "audit_status=clean" >> $GITHUB_OUTPUT
+          else
+            # Check if audit failed due to vulnerabilities or other issues
+            if [ -s audit-results.json ]; then
+              echo "⚠️ Vulnerabilities found"
+              echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+              echo "audit_status=vulnerable" >> $GITHUB_OUTPUT
+              
+              # Extract vulnerability summary
+              VULN_COUNT=$(jq -r '.advisories | length' audit-results.json 2>/dev/null || echo "0")
+              echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+              
+              # Create formatted summary
+              echo "VULNERABILITY_SUMMARY<<EOF" >> $GITHUB_OUTPUT
+              echo "## Security Audit Results" >> $GITHUB_OUTPUT
+              echo "" >> $GITHUB_OUTPUT
+              echo "**Vulnerabilities Found:** $VULN_COUNT" >> $GITHUB_OUTPUT
+              echo "**Scan Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+              echo "" >> $GITHUB_OUTPUT
+              
+              # Add detailed vulnerability information
+              if command -v jq >/dev/null 2>&1 && [ -s audit-results.json ]; then
+                echo "### Vulnerability Details:" >> $GITHUB_OUTPUT
+                jq -r '.advisories[] | "- **\(.title)** (\(.severity))\n  - Package: \(.module_name)\n  - Vulnerable versions: \(.vulnerable_versions)\n  - Patched versions: \(.patched_versions)\n  - More info: \(.url)\n"' audit-results.json >> $GITHUB_OUTPUT 2>/dev/null || echo "Could not parse detailed vulnerability information" >> $GITHUB_OUTPUT
+              fi
+              
+              echo "" >> $GITHUB_OUTPUT
+              echo "### Next Steps:" >> $GITHUB_OUTPUT
+              echo "1. Review the vulnerabilities listed above" >> $GITHUB_OUTPUT
+              echo "2. Update affected packages to patched versions" >> $GITHUB_OUTPUT
+              echo "3. Run \`pnpm audit\` locally to verify fixes" >> $GITHUB_OUTPUT
+              echo "4. Update lockfiles and commit changes" >> $GITHUB_OUTPUT
+              echo "" >> $GITHUB_OUTPUT
+              echo "---" >> $GITHUB_OUTPUT
+              echo "*This issue was automatically created by the Weekly Security Audit workflow.*" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Audit command failed"
+              echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+              echo "audit_status=error" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+      - name: 'Find existing security issue'
+        id: find-issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['security', 'dependencies'],
+              state: 'open'
+            });
+            
+            const securityIssue = issues.data.find(issue => 
+              issue.title.includes('Security vulnerabilities detected in dependencies')
+            );
+            
+            if (securityIssue) {
+              console.log(`Found existing security issue: #${securityIssue.number}`);
+              return securityIssue.number;
+            }
+            
+            console.log('No existing security issue found');
+            return null;
+            
+      - name: 'Create or update security issue'
+        if: steps.audit.outputs.vulnerabilities_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const existingIssueNumber = ${{ steps.find-issue.outputs.result }};
+            const vulnerabilityCount = '${{ steps.audit.outputs.vulnerability_count }}';
+            const summary = `${{ steps.audit.outputs.VULNERABILITY_SUMMARY }}`;
+            
+            if (existingIssueNumber) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssueNumber,
+                body: `## 🔄 Updated Security Audit Results\n\n${summary}`
+              });
+              
+              console.log(`Updated existing security issue #${existingIssueNumber}`);
+            } else {
+              // Create new issue
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '⚠️ Security vulnerabilities detected in dependencies',
+                body: summary,
+                labels: ['security', 'dependencies', 'high-priority']
+              });
+              
+              console.log(`Created new security issue #${issue.data.number}`);
+            }
+            
+      - name: 'Auto-close resolved security issue'
+        if: steps.audit.outputs.vulnerabilities_found == 'false' && steps.audit.outputs.audit_status == 'clean'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const existingIssueNumber = ${{ steps.find-issue.outputs.result }};
+            
+            if (existingIssueNumber) {
+              // Close the issue with a success comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssueNumber,
+                body: `✅ **Weekly audit passed. No vulnerabilities found.**\n\n` +
+                      `All dependencies have been verified as secure as of ${new Date().toUTCString()}.\n\n` +
+                      `This issue is being automatically closed. A new issue will be created if vulnerabilities are detected in future scans.`
+              });
+              
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssueNumber,
+                state: 'closed'
+              });
+              
+              console.log(`Closed security issue #${existingIssueNumber} - no vulnerabilities found`);
+            } else {
+              console.log('No existing security issue to close - audit clean');
+            }
+            
+      - name: 'Summary'
+        run: |
+          echo "## Security Audit Summary"
+          echo "- **Version Lock Check:** ${{ steps.version-check.outputs.floating_versions == 'false' && '✅ Passed' || '❌ Failed' }}"
+          echo "- **Vulnerability Scan:** ${{ steps.audit.outputs.audit_status == 'clean' && '✅ Clean' || steps.audit.outputs.audit_status == 'vulnerable' && '⚠️ Vulnerabilities Found' || '❌ Error' }}"
+          
+          if [ "${{ steps.audit.outputs.vulnerabilities_found }}" = "true" ]; then
+            echo "- **Vulnerability Count:** ${{ steps.audit.outputs.vulnerability_count }}"
+            echo "- **Action Taken:** Security issue created/updated"
+          elif [ "${{ steps.audit.outputs.audit_status }}" = "clean" ]; then
+            echo "- **Action Taken:** ${{ steps.find-issue.outputs.result != 'null' && 'Existing security issue closed' || 'No action needed' }}"
+          fi
