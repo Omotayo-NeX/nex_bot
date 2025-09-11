@@ -36,8 +36,8 @@ jobs:
         with:
           version: '9.12.3'
           
-      - name: 'Install dependencies with frozen lockfile'
-        run: pnpm install --frozen-lockfile
+      - name: 'Install dependencies'
+        run: pnpm install
         
       - name: 'Run security audit'
         id: audit
