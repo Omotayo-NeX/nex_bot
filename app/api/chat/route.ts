@@ -217,8 +217,34 @@ export async function POST(req: NextRequest) {
         lastMessage = messages[messages.length - 1]?.content || '';
       }
       
-      selectedModel = body.model || 'gpt-4o-mini';
-      temperature = body.temperature || 0.7;
+      // Use model and temperature from request body, or fetch user preferences
+      selectedModel = body.model;
+      temperature = body.temperature;
+      
+      // If model or temperature not provided, fetch user preferences
+      if (!selectedModel || temperature === undefined) {
+        try {
+          const userSettings = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              preferred_model: true,
+              preferred_temperature: true
+            }
+          });
+          
+          if (userSettings) {
+            selectedModel = selectedModel || userSettings.preferred_model || 'gpt-4o-mini';
+            temperature = temperature !== undefined ? temperature : (userSettings.preferred_temperature || 0.7);
+          } else {
+            selectedModel = selectedModel || 'gpt-4o-mini';
+            temperature = temperature !== undefined ? temperature : 0.7;
+          }
+        } catch (error) {
+          console.warn(`⚠️ [Chat API] ${requestId} Failed to fetch user preferences:`, error);
+          selectedModel = selectedModel || 'gpt-4o-mini';
+          temperature = temperature !== undefined ? temperature : 0.7;
+        }
+      }
       
       if (!lastMessage || !lastMessage.trim()) {
         console.log(`🚫 [Chat API] ${requestId} Empty message received`);

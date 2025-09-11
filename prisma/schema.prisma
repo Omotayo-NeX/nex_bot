@@ -58,6 +58,9 @@ model User {
   plan_expires_at           DateTime?      @map("plan_expires_at")
   paystack_customer_id      String?        @map("paystack_customer_id")
   last_reset_date           DateTime       @default(now()) @map("last_reset_date")
+  // User preferences
+  preferred_model           String         @default("gpt-4o-mini") @map("preferred_model")
+  preferred_temperature     Float          @default(0.7) @map("preferred_temperature")
   accounts                  Account[]
   sessions                  Session[]
   voiceRequests             VoiceRequest[]

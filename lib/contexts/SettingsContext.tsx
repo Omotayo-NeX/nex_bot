@@ -27,40 +27,73 @@ interface SettingsProviderProps {
 export function SettingsProvider({ children }: SettingsProviderProps) {
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
   const [temperature, setTemperature] = useState(0.7);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load settings from localStorage on mount
+  // Load settings from backend API on mount
   useEffect(() => {
-    const savedModel = localStorage.getItem('nex-ai-model');
-    const savedTemp = localStorage.getItem('nex-ai-temperature');
-    
-    if (savedModel) {
-      setSelectedModel(savedModel);
-    }
-    
-    if (savedTemp) {
-      setTemperature(parseFloat(savedTemp));
-    }
+    loadSettings();
   }, []);
 
-  // Save settings to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('nex-ai-model', selectedModel);
-  }, [selectedModel]);
-
-  useEffect(() => {
-    localStorage.setItem('nex-ai-temperature', temperature.toString());
-  }, [temperature]);
-
   const loadSettings = async () => {
-    // In the future, this could load from a backend API
-    // For now, we just use localStorage
-    return Promise.resolve();
+    try {
+      const response = await fetch('/api/user/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedModel(data.preferredModel || 'gpt-4o-mini');
+        setTemperature(data.preferredTemperature || 0.7);
+      } else {
+        // Fallback to localStorage if API fails
+        const savedModel = localStorage.getItem('nex-ai-model');
+        const savedTemp = localStorage.getItem('nex-ai-temperature');
+        
+        if (savedModel) setSelectedModel(savedModel);
+        if (savedTemp) setTemperature(parseFloat(savedTemp));
+      }
+    } catch (error) {
+      console.error('Failed to load settings from API:', error);
+      
+      // Fallback to localStorage
+      const savedModel = localStorage.getItem('nex-ai-model');
+      const savedTemp = localStorage.getItem('nex-ai-temperature');
+      
+      if (savedModel) setSelectedModel(savedModel);
+      if (savedTemp) setTemperature(parseFloat(savedTemp));
+    } finally {
+      setIsLoaded(true);
+    }
   };
 
   const saveSettings = async () => {
-    // In the future, this could save to a backend API
-    // For now, localStorage saves automatically via useEffect
-    return Promise.resolve();
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          preferredModel: selectedModel,
+          preferredTemperature: temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
+      }
+
+      // Also save to localStorage as backup
+      localStorage.setItem('nex-ai-model', selectedModel);
+      localStorage.setItem('nex-ai-temperature', temperature.toString());
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      
+      // Fallback to localStorage
+      localStorage.setItem('nex-ai-model', selectedModel);
+      localStorage.setItem('nex-ai-temperature', temperature.toString());
+      
+      return Promise.reject(error);
+    }
   };
 
   const value = {

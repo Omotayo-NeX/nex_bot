@@ -82,9 +82,46 @@ export default function SettingsPage() {
     }
   };
 
-  const handleModelChange = (modelId: string) => {
+  const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
     setModelDropdownOpen(false);
+    
+    // Save to backend
+    try {
+      await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          preferredModel: modelId,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to save model preference:', error);
+    }
+  };
+
+  const handleTemperatureChange = async (newTemp: number) => {
+    setTemperature(newTemp);
+    
+    // Debounce the API call to avoid too many requests
+    clearTimeout((window as any).tempTimer);
+    (window as any).tempTimer = setTimeout(async () => {
+      try {
+        await fetch('/api/user/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            preferredTemperature: newTemp,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save temperature preference:', error);
+      }
+    }, 500);
   };
 
   const selectedModelInfo = availableModels.find(model => model.id === selectedModel);
@@ -220,7 +257,7 @@ export default function SettingsPage() {
                     max="1"
                     step="0.1"
                     value={temperature}
-                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                    onChange={(e) => handleTemperatureChange(parseFloat(e.target.value))}
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">

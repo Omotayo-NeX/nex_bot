@@ -160,7 +160,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
       {/* Header */}
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
@@ -300,7 +300,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.3 }}
-        className="border-t border-gray-700/50 p-6 bg-gray-900/50 backdrop-blur-sm"
+        className="border-t bg-[#0d0d0d] p-4"
       >
         <form onSubmit={handleSubmit} className="flex items-end space-x-4">
           <div className="flex-1 relative">
