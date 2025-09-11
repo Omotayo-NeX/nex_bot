@@ -164,12 +164,12 @@ export default function UsageDisplay() {
     return (
       <div className="p-6 space-y-4">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded"></div>
-                <div className="h-2 bg-gray-200 rounded"></div>
+                <div className="h-3 bg-gray-700 rounded"></div>
+                <div className="h-2 bg-gray-700 rounded"></div>
               </div>
             ))}
           </div>
@@ -182,10 +182,10 @@ export default function UsageDisplay() {
     return (
       <div className="p-6 text-center">
         <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-600 text-sm">{error}</p>
+        <p className="text-red-400 text-sm">{error}</p>
         <button
           onClick={fetchUsage}
-          className="mt-2 px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+          className="mt-2 px-3 py-1 text-xs bg-red-900/20 text-red-400 rounded hover:bg-red-900/30"
         >
           Retry
         </button>
@@ -195,7 +195,7 @@ export default function UsageDisplay() {
 
   if (!usage) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-gray-400">
         <p>No usage data available</p>
       </div>
     );
