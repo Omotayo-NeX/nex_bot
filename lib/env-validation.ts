@@ -19,6 +19,7 @@ export function validateEnvironmentVariables() {
     NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    VERCEL_API_KEY: process.env.VERCEL_API_KEY,
   };
 
   const missing: string[] = [];
@@ -67,6 +68,11 @@ export function validateEnvironmentVariables() {
   // Validate NEX Prompt ID format
   if (process.env.NEX_PROMPT_ID && !process.env.NEX_PROMPT_ID.startsWith('pmpt_')) {
     invalid.push('NEX_PROMPT_ID (must start with pmpt_)');
+  }
+
+  // Validate Vercel API Key format (alphanumeric string)
+  if (process.env.VERCEL_API_KEY && (process.env.VERCEL_API_KEY.length < 20 || !/^[a-zA-Z0-9]+$/.test(process.env.VERCEL_API_KEY))) {
+    invalid.push('VERCEL_API_KEY (must be alphanumeric and at least 20 characters)');
   }
 
   return {
