@@ -9,7 +9,6 @@ export function validateEnvironmentVariables() {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    NEX_PROMPT_ID: process.env.NEX_PROMPT_ID,
   };
 
   // Optional but recommended environment variables (warn if missing)
@@ -20,6 +19,7 @@ export function validateEnvironmentVariables() {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     VERCEL_API_KEY: process.env.VERCEL_API_KEY,
+    NEX_PROMPT_ID: process.env.NEX_PROMPT_ID,
   };
 
   const missing: string[] = [];
