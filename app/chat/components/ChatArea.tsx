@@ -1,10 +1,11 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Square, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import ChatBubble from './ChatBubble';
+import ChatInput from './ChatInput';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,134 +21,15 @@ interface ChatAreaProps {
 
 export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAreaProps) {
   const { data: session } = useSession();
-  const [input, setInput] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
-  const [speechSupported, setSpeechSupported] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-          console.log('Speech recognition started');
-          setIsRecording(true);
-        };
-
-        recognition.onresult = (event: any) => {
-          console.log('Speech recognition result:', event.results);
-          if (event.results.length > 0) {
-            const transcript = event.results[0][0].transcript;
-            setInput(prev => prev + (prev ? ' ' : '') + transcript);
-            inputRef.current?.focus();
-            adjustTextareaHeight();
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsRecording(false);
-          if (event.error === 'not-allowed') {
-            alert('Microphone access denied. Please allow microphone permissions and try again.');
-          } else if (event.error === 'no-speech') {
-            alert('No speech was detected. Please try again.');
-          } else {
-            alert(`Speech recognition error: ${event.error}`);
-          }
-        };
-
-        recognition.onend = () => {
-          console.log('Speech recognition ended');
-          setIsRecording(false);
-        };
-
-        setRecognition(recognition);
-      } else {
-        setSpeechSupported(false);
-        console.warn('Speech recognition not supported');
-      }
-    }
-
-    return () => {
-      if (recognition) {
-        recognition.abort();
-      }
-    };
-  }, []);
-
-  // Auto-resize textarea
-  const adjustTextareaHeight = () => {
-    const textarea = inputRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    
-    onSendMessage(input);
-    setInput('');
-    
-    // Reset textarea height
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
   const startSuggestion = (text: string) => {
-    setInput(text);
-    inputRef.current?.focus();
-    adjustTextareaHeight();
-  };
-
-  const startRecording = () => {
-    if (!speechSupported) {
-      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge for voice input.');
-      return;
-    }
-
-    if (!recognition) {
-      alert('Speech recognition is not initialized. Please refresh the page and try again.');
-      return;
-    }
-
-    if (isRecording) {
-      recognition.stop();
-      setIsRecording(false);
-    } else {
-      try {
-        recognition.start();
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
-        alert('Failed to start speech recognition. Please try again.');
-        setIsRecording(false);
-      }
-    }
+    onSendMessage(text);
   };
 
   const suggestions = [
@@ -160,7 +42,9 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
+    <>
+      {/* Chat Messages Area */}
+      <div className="flex flex-col h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
       {/* Header */}
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
@@ -194,7 +78,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
       </motion.div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6 pb-28">
         <AnimatePresence>
           {messages.length === 0 ? (
             <motion.div 
@@ -295,74 +179,10 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
         </AnimatePresence>
       </div>
 
-      {/* Input Area */}
-      <motion.div 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.3 }}
-        className="border-t bg-[#0d0d0d] p-4"
-      >
-        <form onSubmit={handleSubmit} className="flex items-end space-x-4">
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                adjustTextareaHeight();
-              }}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask me anything about marketing, automation, or business growth..."
-              className="w-full min-h-[50px] max-h-[120px] px-4 py-3 pr-12 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none transition-all"
-              disabled={isLoading}
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            />
-            
-            <button
-              type="button"
-              onClick={startRecording}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-all ${
-                isRecording 
-                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-lg shadow-red-500/25' 
-                  : speechSupported 
-                    ? 'bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 hover:text-white' 
-                    : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-              }`}
-              disabled={isLoading || !speechSupported}
-              title={!speechSupported ? 'Speech recognition not supported in this browser' : isRecording ? 'Stop recording' : 'Start voice input'}
-            >
-              {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
-          </div>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-2xl transition-all transform disabled:cursor-not-allowed disabled:scale-100"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </motion.button>
-        </form>
+      </div>
 
-        <div className="mt-3 text-center">
-          {isRecording ? (
-            <motion.p 
-              animate={{ opacity: [1, 0.5, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-xs text-red-400 flex items-center justify-center space-x-2"
-            >
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span>Listening... Speak now</span>
-            </motion.p>
-          ) : null}
-        </div>
-      </motion.div>
-    </div>
+      {/* Chat Input Component */}
+      <ChatInput onSendMessage={onSendMessage} isLoading={isLoading} />
+    </>
   );
 }

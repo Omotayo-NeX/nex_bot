@@ -115,7 +115,10 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
 
-    const { prompt, model = 'dall-e-3' } = await req.json();
+    const { prompt } = await req.json();
+
+    // Always use the latest/most capable model
+    const model = 'dall-e-3';
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -125,14 +128,6 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('🖼️ [Image Generation Request] Model:', model, 'Prompt:', prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
-
-    // Validate model parameter
-    if (!['dall-e-2', 'dall-e-3'].includes(model)) {
-      return NextResponse.json(
-        { error: 'Invalid model. Only dall-e-2 and dall-e-3 are supported.', isError: true },
-        { status: 400 }
-      );
-    }
 
     // Get OpenAI API key
     const { provider, apiKey } = getOpenAIProvider();

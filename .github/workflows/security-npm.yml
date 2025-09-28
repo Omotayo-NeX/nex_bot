@@ -1,0 +1,54 @@
+name: Security Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Check for package-lock.json
+      id: check-lockfile
+      run: |
+        if [ ! -f "package-lock.json" ]; then
+          echo "package-lock.json not found. Skipping security audit."
+          echo "skip_audit=true" >> $GITHUB_OUTPUT
+        else
+          echo "package-lock.json found. Proceeding with security audit."
+          echo "skip_audit=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install dependencies
+      if: steps.check-lockfile.outputs.skip_audit == 'false'
+      run: npm ci
+
+    - name: Run security audit
+      if: steps.check-lockfile.outputs.skip_audit == 'false'
+      run: |
+        echo "Running npm audit with high severity threshold..."
+        if npm audit --audit-level=high; then
+          echo "✅ No high or critical vulnerabilities found"
+        else
+          echo "❌ High or critical vulnerabilities detected!"
+          echo "Audit summary:"
+          npm audit --audit-level=high --json | jq -r '.metadata | "Total vulnerabilities: \(.vulnerabilities.total), High: \(.vulnerabilities.high), Critical: \(.vulnerabilities.critical)"' || echo "Unable to parse audit summary"
+          exit 1
+        fi
+
+    - name: Skip audit message
+      if: steps.check-lockfile.outputs.skip_audit == 'true'
+      run: echo "⚠️ Security audit skipped - package-lock.json not found"

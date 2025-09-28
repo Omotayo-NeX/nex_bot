@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Download, Image as ImageIcon, Loader2, RefreshCw, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Download, Image as ImageIcon, Loader2, RefreshCw, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
@@ -24,7 +24,6 @@ interface PictureGeneratorModalProps {
 
 export default function PictureGeneratorModal({ onClose }: PictureGeneratorModalProps) {
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('dall-e-3');
   const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
   const [revisedPrompt, setRevisedPrompt] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,11 +31,6 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
   const [imageHistory, setImageHistory] = useState<ImageHistory[]>([]);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [showImageModal, setShowImageModal] = useState(false);
-
-  const models = [
-    { id: 'dall-e-3', name: 'DALL·E 3', description: 'Most advanced OpenAI model' },
-    { id: 'dall-e-2', name: 'DALL·E 2', description: 'Fast and reliable' },
-  ];
 
   // Load history from localStorage on component mount
   useEffect(() => {
@@ -70,7 +64,7 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), model: selectedModel }),
+        body: JSON.stringify({ prompt: prompt.trim() }),
       });
 
       if (!response.ok) {
@@ -110,7 +104,7 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
     }
   };
 
-  const downloadImage = async (imageUrl: string, filename?: string) => {
+  const downloadImage = async (imageUrl: string, customPrompt?: string) => {
     try {
       const response = await fetch('/api/download-image', {
         method: 'POST',
@@ -124,7 +118,16 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename || `nex-generated-image-${Date.now()}.png`;
+
+      // Generate descriptive filename
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const cleanPrompt = (customPrompt || prompt)
+        .substring(0, 30)
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, '-')
+        .toLowerCase();
+      link.download = `ai-picture-generator-${cleanPrompt}-${timestamp}.png`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -195,34 +198,8 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8">
-          {/* Model Selection & Input Section */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Model Selection */}
-            <div className="space-y-4">
-              <label className="block text-white font-semibold text-lg">
-                AI Model
-              </label>
-              <div className="space-y-3">
-                {models.map((model) => (
-                  <motion.button
-                    key={model.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedModel(model.id)}
-                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
-                      selectedModel === model.id
-                        ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20'
-                        : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'
-                    }`}
-                  >
-                    <div className="font-medium text-white">{model.name}</div>
-                    <div className="text-sm text-gray-400">{model.description}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Prompt Input */}
+          {/* Prompt Input Section */}
+          <div className="max-w-2xl mx-auto space-y-6">
             <div className="space-y-4">
               <label className="block text-white font-semibold text-lg">
                 Describe Your Image
@@ -234,11 +211,12 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
                   placeholder="A majestic dragon soaring above snow-capped mountains at golden hour, digital art style..."
                   className="w-full h-32 px-6 py-4 bg-gray-800/50 border-2 border-gray-600 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all resize-none shadow-inner"
                   disabled={isLoading}
+                  maxLength={500}
                 />
                 <div className="text-gray-400 text-sm">
                   {prompt.length}/500 characters • Be specific for better results
                 </div>
-                
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -279,66 +257,77 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
 
           {/* Generated Image Display */}
           {generatedImage && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <div className="bg-gray-800/30 rounded-3xl p-6 border border-gray-700/50">
+              <div className="max-w-sm mx-auto bg-gray-800/30 rounded-3xl p-6 border border-gray-700/50">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-white">Generated Image</h3>
-                  <div className="text-sm text-gray-400">Model: {models.find(m => m.id === selectedModel)?.name}</div>
+                  <div className="text-sm text-gray-400">DALL·E 3</div>
                 </div>
-                
-                <div className="relative group">
-                  <motion.img
+
+                {/* Medium-sized image preview */}
+                <div className="relative">
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3 }}
-                    src={generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`}
-                    alt="Generated image"
-                    className="w-full h-auto rounded-2xl shadow-2xl cursor-pointer hover:shadow-3xl transition-all"
-                    onClick={() => viewImage(generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`)}
-                    onError={(e) => {
-                      console.error('Image failed to load:', e);
-                      setError('Failed to load generated image. Please try again.');
-                    }}
-                  />
-                  
-                  {/* Image Actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center space-x-4">
+                    className="relative"
+                  >
+                    <Image
+                      src={generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`}
+                      alt="Generated AI image"
+                      width={400}
+                      height={400}
+                      className="w-full max-w-[400px] mx-auto h-auto rounded-2xl shadow-2xl cursor-pointer hover:shadow-3xl transition-all"
+                      onClick={() => viewImage(generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`)}
+                      onError={(e) => {
+                        console.error('Image failed to load:', e);
+                        setError('Failed to load generated image. Please try again.');
+                      }}
+                    />
+                  </motion.div>
+                </div>
+
+                {/* Download Button */}
+                <div className="mt-6 space-y-4">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => downloadImage(generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`)}
+                    className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center space-x-2 shadow-lg"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>Download Image</span>
+                  </motion.button>
+
+                  {/* Secondary actions */}
+                  <div className="flex gap-3">
                     <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => downloadImage(generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`, `nex-generated-${Date.now()}.png`)}
-                      className="p-3 bg-green-600 hover:bg-green-700 rounded-xl text-white shadow-lg"
-                      title="Download"
-                    >
-                      <Download className="w-5 h-5" />
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={regenerateImage}
-                      className="p-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white shadow-lg"
-                      title="Regenerate"
+                      className="flex-1 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/50 text-blue-300 rounded-xl font-medium transition-all flex items-center justify-center space-x-2"
                     >
-                      <RefreshCw className="w-5 h-5" />
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Regenerate</span>
                     </motion.button>
-                    
+
                     <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => copyImageLink(generatedImage.imageUrl || generatedImage.url || `data:image/png;base64,${generatedImage.b64_json}`)}
-                      className="p-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white shadow-lg"
-                      title="Copy Link"
+                      className="flex-1 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/50 text-purple-300 rounded-xl font-medium transition-all flex items-center justify-center space-x-2"
                     >
-                      <Copy className="w-5 h-5" />
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Link</span>
                     </motion.button>
                   </div>
                 </div>
 
+                {/* Enhanced prompt display */}
                 {revisedPrompt && (
                   <div className="mt-4 p-4 bg-blue-900/20 border border-blue-600/30 rounded-2xl">
                     <p className="text-blue-200 text-sm">
@@ -352,17 +341,17 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
 
           {/* Loading State */}
           {isLoading && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-16"
+              className="max-w-md mx-auto flex flex-col items-center justify-center py-12"
             >
-              <div className="w-32 h-32 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-3xl border-2 border-dashed border-purple-500/30 flex items-center justify-center mb-6">
-                <Loader2 className="w-12 h-12 animate-spin text-purple-400" />
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-2xl border-2 border-dashed border-purple-500/30 flex items-center justify-center mb-6">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
               </div>
               <div className="text-center">
-                <h3 className="text-xl font-semibold text-white mb-2">Creating Your Masterpiece</h3>
-                <p className="text-gray-400">This may take a few moments...</p>
+                <h3 className="text-lg font-semibold text-white mb-2">Creating Your Masterpiece</h3>
+                <p className="text-gray-400 text-sm">This may take a few moments...</p>
               </div>
             </motion.div>
           )}

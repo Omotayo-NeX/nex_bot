@@ -177,7 +177,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
+    <div className="h-screen grid grid-cols-1 lg:grid-cols-[280px_1fr] overflow-hidden bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
       {/* Mobile Hamburger Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -200,8 +200,8 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {/* Left Sidebar */}
-      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out lg:transition-none`}>
-        <LeftSidebar 
+      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out lg:transition-none w-[280px]`}>
+        <LeftSidebar
           onNewChat={handleNewChat}
           onOpenPictureGenerator={() => setActiveModal('picture')}
           onOpenVoiceGenerator={() => setActiveModal('voiceover')}
@@ -210,13 +210,13 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1">
-        <ChatArea 
+      <main className="flex flex-col min-w-0">
+        <ChatArea
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
         />
-      </div>
+      </main>
 
       {/* Modal Components */}
       <AnimatePresence>

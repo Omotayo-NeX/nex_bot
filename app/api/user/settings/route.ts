@@ -68,11 +68,11 @@ export async function PUT(req: NextRequest) {
 
     // Validate input
     const updates: any = {};
-    
+
     if (body.preferredModel && typeof body.preferredModel === 'string') {
       updates.preferred_model = body.preferredModel;
     }
-    
+
     if (body.preferredTemperature !== undefined && typeof body.preferredTemperature === 'number') {
       // Clamp temperature between 0 and 1
       updates.preferred_temperature = Math.max(0, Math.min(1, body.preferredTemperature));

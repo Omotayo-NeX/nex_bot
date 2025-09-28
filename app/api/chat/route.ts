@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
               preferred_temperature: true
             }
           });
-          
+
           if (userSettings) {
             selectedModel = selectedModel || userSettings.preferred_model || 'gpt-4o-mini';
             temperature = temperature !== undefined ? temperature : (userSettings.preferred_temperature || 0.7);
@@ -570,16 +570,25 @@ IMPORTANT:
 
     // 8. PROCESS OPENAI RESPONSE
     let assistantMessage = data.choices?.[0]?.message?.content;
-    
+
     if (!assistantMessage) {
       console.error(`❌ [Chat API] ${requestId} No content in OpenAI response:`, {
         choices: data.choices,
         finishReason: data.choices?.[0]?.finish_reason,
         requestId
       });
-      
+
       assistantMessage = "I'm here to help you grow your business. How can NeX assist you today?";
     }
+
+    // Remove markdown formatting for cleaner responses
+    assistantMessage = assistantMessage
+      .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove **bold**
+      .replace(/\*(.*?)\*/g, '$1')     // Remove *italic*
+      .replace(/`(.*?)`/g, '$1')       // Remove `code`
+      .replace(/#{1,6}\s*/g, '')       // Remove ### headers
+      .replace(/^\s*-\s*/gm, '• ')     // Convert - to bullet points
+      .replace(/^\s*\d+\.\s*/gm, '')   // Remove numbered lists formatting
 
     // Add knowledge sources to the response if used
     if (hasKnowledge && knowledgeSources.length > 0) {

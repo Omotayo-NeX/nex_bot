@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = token.id as string;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     // Get user info for plan details
     const user = await prisma.user.findUnique({
@@ -34,34 +33,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get today's usage stats
-    const todayUsage = await prisma.usageStats.findUnique({
-      where: {
-        userId_date: {
-          userId: userId,
-          date: today
-        }
+    // Get user usage data directly from User table (simpler approach)
+    const userUsage = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        chat_used_today: true,
+        videos_generated_this_week: true,
+        voice_minutes_this_week: true
       }
     });
 
-    // Get this week's usage (for images, videos, voice)
-    const startOfWeek = getStartOfWeek(new Date()).toISOString().split('T')[0];
-    const endOfWeek = getEndOfWeek(new Date()).toISOString().split('T')[0];
+    // For now, we'll use the User table data since it's working
+    // Future enhancement: migrate to UsageStats table for detailed tracking
+    const todayUsage = {
+      messagesUsed: userUsage?.chat_used_today || 0
+    };
 
-    const weeklyUsage = await prisma.usageStats.aggregate({
-      where: {
-        userId: userId,
-        date: {
-          gte: startOfWeek,
-          lte: endOfWeek
-        }
-      },
+    const weeklyUsage = {
       _sum: {
-        imagesGenerated: true,
-        videosGenerated: true,
-        voiceMinutes: true
+        imagesGenerated: 0, // Not tracked yet
+        videosGenerated: userUsage?.videos_generated_this_week || 0,
+        voiceMinutes: userUsage?.voice_minutes_this_week || 0
       }
-    });
+    };
 
     // Get plan limits
     const planKey = user.plan as keyof typeof PLANS;
@@ -114,19 +108,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Helper functions to get start and end of week
-function getStartOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day; // Adjust to start from Sunday
-  return new Date(d.setDate(diff));
-}
-
-function getEndOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + 6; // Add 6 days to get Saturday
-  return new Date(d.setDate(diff));
 }

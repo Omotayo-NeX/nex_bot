@@ -109,7 +109,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       initial={{ x: -260, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-64 bg-[#111827] border-r border-gray-700/50 flex flex-col h-full"
+      className="w-[280px] bg-[#111827] border-r border-gray-700/50 flex flex-col h-full"
     >
       {/* New Chat Button */}
       <div className="p-4">
@@ -200,13 +200,9 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       <div className="p-4 border-t border-gray-700/50 relative" ref={dropdownRef}>
         {userData ? (
           <>
-            <Link 
-              href="/settings"
-              onClick={() => {
-                setShowUserMenu(false);
-                if (onCloseSidebar) onCloseSidebar();
-              }}
-              className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group"
+            <div
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200 group cursor-pointer"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 text-white" />
@@ -220,14 +216,8 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
                 </div>
               </div>
               <Settings className="w-4 h-4 text-gray-500 group-hover:text-gray-300 flex-shrink-0" />
-            </Link>
+            </div>
 
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="absolute top-3 right-3 p-1 text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
 
             {/* Dropdown Menu */}
             <AnimatePresence>

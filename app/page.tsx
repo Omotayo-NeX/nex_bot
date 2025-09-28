@@ -83,24 +83,36 @@ export default function LandingPage() {
           
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
-            <button 
+            <button
               onClick={() => scrollToSection('features')}
               className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               Features
             </button>
-            <button 
+            <button
               onClick={() => scrollToSection('solutions')}
               className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               Solutions
             </button>
-            <button 
+            <button
               onClick={() => scrollToSection('testimonials')}
               className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               Testimonials
             </button>
+            <Link
+              href="/legal"
+              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+            >
+              Legal
+            </Link>
+            <Link
+              href="/pricing"
+              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+            >
+              Pricing
+            </Link>
             
             <div className="flex items-center space-x-4">
               <Link href="/auth/signup" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
@@ -670,33 +682,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-gray-200 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-3 mb-6 md:mb-0">
-              <div className="relative w-8 h-8">
-                <Image 
-                  src="/Nex_logomark_white.png" 
-                  alt="NeX Logo" 
-                  fill
-                  className="object-contain filter brightness-0"
-                />
-              </div>
-              <span className="text-lg font-semibold text-gray-900">NeX AI</span>
-            </div>
-            <div className="text-center md:text-right">
-              <p className="text-gray-600 mb-2">
-                Powered by{" "}
-                <a href="https://nexconsultingltd.com" className="text-blue-600 hover:text-blue-800 font-medium">
-                  Nex Consulting Limited
-                </a>
-              </p>
-              <p className="text-sm text-gray-500">© 2024 NeX AI. All rights reserved.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

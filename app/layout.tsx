@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/lib/providers'
 import { Toaster } from 'sonner'
+import Footer from '@/app/components/Footer'
 
 // Force deployment refresh - v2
 
@@ -31,9 +32,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/Nex_logomark_white.png" />
         <link rel="shortcut icon" href="/Nex_logomark_white.png" />
       </head>
-      <body className="bg-zinc-50 text-zinc-900">
+      <body className="flex flex-col min-h-screen bg-zinc-50 text-zinc-900" suppressHydrationWarning={true}>
         <Providers session={undefined}>
-          {children}
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
           <Toaster />
         </Providers>
       </body>
