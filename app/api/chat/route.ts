@@ -298,10 +298,10 @@ export async function POST(req: NextRequest) {
     console.log('✅ [Chat API] OpenAI API key found');
 
     // Check if user is asking to continue
-    const continueKeywords = ['continue', 'go on', 'next', 'more', 'keep going', 'and'];
-    const isContinueRequest = continueKeywords.some(keyword => 
-      lastMessage.toLowerCase().trim() === keyword || 
-      lastMessage.toLowerCase().trim().includes(keyword)
+    const continueKeywords = ['continue', 'go on', 'next', 'more', 'keep going', 'longer', 'expand', 'elaborate'];
+    const isContinueRequest = continueKeywords.some(keyword =>
+      lastMessage.toLowerCase().trim() === keyword ||
+      (lastMessage.toLowerCase().includes(keyword) && lastMessage.length < 50)
     );
 
     // Get conversation context for better memory
@@ -323,8 +323,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure we maintain context by keeping the full conversation history
-    // but limit to last 10 exchanges to prevent token limit issues
-    const contextMessages = modifiedMessages.slice(-20); // Keep last 20 messages (10 exchanges)
+    // but limit to last 30 messages to prevent token limit issues while maintaining better context
+    const contextMessages = modifiedMessages.slice(-30); // Keep last 30 messages (15 exchanges)
 
     // Check if the user is requesting specific marketing tools (but not if it's a continue request)
     const toolResponse = !isContinueRequest ? detectAndExecuteMarketingTool(lastMessage) : null;
@@ -422,12 +422,15 @@ CRITICAL OUTPUT RULES:
    - Ensure responses are fully formed and complete
 
 CONVERSATION RULES:
+- ALWAYS maintain conversation context and continuity throughout the entire chat session
+- Reference previous messages and build upon earlier discussions naturally
 - ALWAYS provide direct, complete answers without asking for clarification unless the request is genuinely impossible to understand
 - If someone asks "give me 5 examples of automation," immediately provide all 5 examples - do not ask what type of automation
 - Be comprehensive and helpful in your responses
-- When continuing, seamlessly pick up where you left off - never restart or repeat content
+- When continuing or expanding on topics, seamlessly pick up where you left off - never restart or repeat content
 - Only ask clarifying questions when the user's request is truly ambiguous or impossible to answer
 - Provide practical, actionable information that helps users immediately
+- Remember the full conversation history and refer to it when relevant (e.g., "As I mentioned earlier about your bakery business...")
 - If users need advanced business consultation or want to work with experts, mention Nex Consulting Limited and their website
 
 RESPONSE FORMAT:
