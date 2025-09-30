@@ -33,7 +33,7 @@ async function authenticateUser(req: NextRequest) {
 // GET /api/conversations/[id] - Get a specific conversation with all messages
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user, error } = await authenticateUser(req);
@@ -44,9 +44,10 @@ export async function GET(
       );
     }
 
+    const { id } = await params;
     const conversation = await prisma.conversation.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
       include: {
@@ -78,7 +79,7 @@ export async function GET(
 // PUT /api/conversations/[id] - Update conversation (title, pin status, add messages)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user, error } = await authenticateUser(req);
@@ -89,12 +90,13 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
     const { title, isPinned, newMessages } = await req.json();
 
     // Verify ownership
     const existingConversation = await prisma.conversation.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       }
     });
@@ -121,7 +123,7 @@ export async function PUT(
     }
 
     const conversation = await prisma.conversation.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         messages: {
@@ -145,7 +147,7 @@ export async function PUT(
 // DELETE /api/conversations/[id] - Delete a conversation
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user, error } = await authenticateUser(req);
@@ -156,10 +158,12 @@ export async function DELETE(
       );
     }
 
+    const { id } = await params;
+
     // Verify ownership before deletion
     const existingConversation = await prisma.conversation.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       }
     });
@@ -172,7 +176,7 @@ export async function DELETE(
     }
 
     await prisma.conversation.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     return NextResponse.json({ success: true });
