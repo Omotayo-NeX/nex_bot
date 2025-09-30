@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
 import { Crown, MessageCircle, Video, Mic, ArrowUp } from 'lucide-react';
 import { PLANS, type PlanType, getRemainingUsage } from '@/lib/plans';
@@ -15,19 +15,23 @@ interface UsageData {
 }
 
 export default function UsageDashboard() {
-  const { data: session } = useSession();
+  const { user, session } = useAuth();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (user && session) {
       fetchUsage();
     }
-  }, [session]);
+  }, [user, session]);
 
   const fetchUsage = async () => {
     try {
-      const response = await fetch('/api/user/usage');
+      const response = await fetch('/api/user/usage', {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setUsage(data);
@@ -39,7 +43,7 @@ export default function UsageDashboard() {
     }
   };
 
-  if (!session || loading) {
+  if (!user || loading) {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-6">
         <div className="animate-pulse">

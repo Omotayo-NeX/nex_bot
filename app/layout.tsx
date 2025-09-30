@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '@/lib/providers'
 import { Toaster } from 'sonner'
-import Footer from '@/app/components/Footer'
+import ConditionalFooter from '@/app/components/ConditionalFooter'
 
 // Force deployment refresh - v2
 
@@ -33,11 +33,11 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/Nex_logomark_white.png" />
       </head>
       <body className="flex flex-col min-h-screen bg-zinc-50 text-zinc-900" suppressHydrationWarning={true}>
-        <Providers session={undefined}>
+        <Providers>
           <main className="flex-grow">
             {children}
           </main>
-          <Footer />
+          <ConditionalFooter />
           <Toaster />
         </Providers>
       </body>

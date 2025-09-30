@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import ChatBubble from './ChatBubble';
 import ChatInput from './ChatInput';
 
@@ -11,16 +11,17 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  images?: string[];
 }
 
 interface ChatAreaProps {
   messages: Message[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, images?: string[]) => void;
   isLoading: boolean;
 }
 
 export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAreaProps) {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -59,6 +60,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                 src="/Nex_logomark_white.png"
                 alt="NeX AI Logo"
                 fill
+                sizes="40px"
                 className="object-contain"
               />
             </div>
@@ -103,6 +105,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                   src="/Nex_logomark_white.png"
                   alt="NeX AI Logo"
                   fill
+                  sizes="80px"
                   className="object-contain"
                 />
               </motion.div>
@@ -140,11 +143,11 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
           ) : (
             <div className="space-y-1">
               {messages.map((message, index) => (
-                <ChatBubble 
-                  key={index} 
-                  message={message} 
-                  index={index} 
-                  userName={session?.user?.name || undefined}
+                <ChatBubble
+                  key={index}
+                  message={message}
+                  index={index}
+                  userName={user?.user_metadata?.name || user?.email || undefined}
                 />
               ))}
               

@@ -21,21 +21,39 @@ export async function GET(request: NextRequest) {
       // For now, all users are treated as verified immediately
       if (user) {
         console.log('✅ User authenticated:', user.email);
-        
-        // Update the user's emailVerified field in Prisma (all users are auto-verified)
+
+        // Create or update user in Prisma database
         try {
-          await prisma.user.update({
+          await prisma.user.upsert({
             where: { id: user.id },
-            data: { 
+            update: {
               emailVerified: new Date(), // Auto-verify all users
+              updatedAt: new Date(),
             },
+            create: {
+              id: user.id,
+              email: user.email || '',
+              name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+              plan: 'free',
+              subscriptionStatus: 'inactive',
+              emailVerified: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              last_reset_date: new Date(),
+              preferred_model: 'gpt-4o-mini',
+              preferred_temperature: 0.7,
+              chat_used_today: 0,
+              videos_generated_this_week: 0,
+              voice_minutes_this_week: 0,
+              images_generated_this_week: 0,
+            }
           });
-          console.log('✅ User auto-verified in Prisma');
+          console.log('✅ User record ensured in Prisma database');
         } catch (prismaError) {
-          console.error('❌ Failed to update user in Prisma:', prismaError);
+          console.error('❌ Failed to create/update user in Prisma:', prismaError);
           // Don't fail the authentication if Prisma update fails
         }
-        
+
         // Redirect to chat page directly (no verification needed)
         return NextResponse.redirect(new URL('/chat', request.url));
       }

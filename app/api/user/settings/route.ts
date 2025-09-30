@@ -1,22 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+
+// Helper function to authenticate user with Supabase
+async function authenticateUser(req: NextRequest) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, error: 'No authorization header' };
+  }
+
+  const accessToken = authHeader.substring(7);
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+  if (error || !user) {
+    return { user: null, error: 'Invalid token' };
+  }
+
+  return { user, error: null };
+}
 
 export async function GET(req: NextRequest) {
   try {
     // Check authentication
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    const { user, error } = await authenticateUser(req);
+    if (error || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const userId = token.id as string;
+    const userId = user.id;
 
     // Get user settings
-    const user = await prisma.user.findUnique({
+    const userSettings = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         preferred_model: true,
@@ -26,7 +54,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    if (!user) {
+    if (!userSettings) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -34,10 +62,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      preferredModel: user.preferred_model,
-      preferredTemperature: user.preferred_temperature,
-      plan: user.plan,
-      subscriptionStatus: user.subscriptionStatus
+      preferredModel: userSettings.preferred_model,
+      preferredTemperature: userSettings.preferred_temperature,
+      plan: userSettings.plan,
+      subscriptionStatus: userSettings.subscriptionStatus
     });
 
   } catch (error: any) {
@@ -55,15 +83,15 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     // Check authentication
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    const { user, error } = await authenticateUser(req);
+    if (error || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const userId = token.id as string;
+    const userId = user.id;
     const body = await req.json();
 
     // Validate input

@@ -1,12 +1,14 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { X, Download, Mic, MicOff, Play, Pause, Volume2, Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 interface VoiceoverGeneratorModalProps {
   onClose: () => void;
 }
 
 export default function VoiceoverGeneratorModal({ onClose }: VoiceoverGeneratorModalProps) {
+  const { session } = useAuth();
   const [text, setText] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('Rachel');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -92,7 +94,10 @@ export default function VoiceoverGeneratorModal({ onClose }: VoiceoverGeneratorM
     try {
       const response = await fetch('/api/voiceover', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({
           text: text.trim(),
           voice: selectedVoice,

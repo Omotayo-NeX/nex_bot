@@ -1,5 +1,5 @@
 'use client';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,45 +14,67 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  images?: string[];
 }
 
 type ModalType = 'picture' | 'voiceover' | null;
 
 export default function ChatPage() {
-  const { data: session, status } = useSession();
+  const { user, session, loading } = useAuth();
   const router = useRouter();
   const { selectedModel, temperature } = useSettings();
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState<string>('');
 
-  const handleSendMessage = async (messageText: string) => {
-    if (!messageText.trim() || isLoading) return;
+  const handleSendMessage = async (messageText: string, images?: string[]) => {
+    if ((!messageText.trim() && (!images || images.length === 0)) || isLoading) return;
 
-    const userMessage: Message = { 
-      role: 'user', 
+    const userMessage: Message = {
+      role: 'user',
       content: messageText.trim(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      images: images
     };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
+      // Check if we have a valid session
+      if (!session?.access_token) {
+        console.error('❌ [Chat Frontend] No access token found');
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: 'Your session has expired. Please sign out and sign back in to continue.',
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setIsLoading(false);
+        return;
+      }
+
       console.log('🚀 [Chat Frontend] Sending message:', {
         message: messageText.trim(),
         model: selectedModel,
-        temperature: temperature
+        temperature: temperature,
+        hasToken: !!session.access_token
       });
 
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           messages: [...messages, userMessage].map(msg => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content,
+            images: msg.images
           })),
           model: selectedModel,
           temperature: temperature
@@ -91,13 +113,17 @@ export default function ChatPage() {
         assistantContent = data.response || 'Sorry, I could not process your request.';
       }
       
-      const assistantMessage: Message = { 
-        role: 'assistant', 
+      const assistantMessage: Message = {
+        role: 'assistant',
         content: assistantContent,
         timestamp: Date.now()
       };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+
+      const updatedMessages = [...messages, userMessage, assistantMessage];
+      setMessages(updatedMessages);
+
+      // Save conversation after each exchange
+      await saveConversation(updatedMessages);
       
     } catch (error: any) {
       console.error('❌ [Chat Frontend] Network/Request error:', {
@@ -117,23 +143,118 @@ export default function ChatPage() {
     }
   };
 
+  const generateConversationTitle = (messages: Message[]): string => {
+    if (messages.length === 0) return 'New Conversation';
+
+    const firstUserMessage = messages.find(msg => msg.role === 'user');
+    if (!firstUserMessage) return 'New Conversation';
+
+    // Use first 50 characters of the first user message as title
+    const title = firstUserMessage.content.substring(0, 50);
+    return title.length < firstUserMessage.content.length ? title + '...' : title;
+  };
+
+  const saveConversation = async (messages: Message[]) => {
+    if (!user?.id || messages.length < 2) return;
+
+    try {
+      const title = conversationTitle || generateConversationTitle(messages);
+
+      if (currentConversationId) {
+        // Update existing conversation with new messages
+        const newMessages = messages.slice(-2); // Only send the latest user and assistant messages
+        await fetch(`/api/conversations/${currentConversationId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({
+            title,
+            newMessages: newMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          })
+        });
+      } else {
+        // Create new conversation
+        const response = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({
+            title,
+            messages: messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          })
+        });
+
+        if (response.ok) {
+          const conversation = await response.json();
+          setCurrentConversationId(conversation.id);
+          setConversationTitle(conversation.title);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save conversation:', error);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
+      if (response.ok) {
+        const conversation = await response.json();
+        const formattedMessages = conversation.messages.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.createdAt).getTime()
+        }));
+
+        setMessages(formattedMessages);
+        setCurrentConversationId(conversation.id);
+        setConversationTitle(conversation.title);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  };
+
   const handleNewChat = () => {
     setMessages([]);
+    setCurrentConversationId(null);
+    setConversationTitle('');
   };
 
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.replace('/auth/signin');
-      return;
+    if (loading) return;
+
+    if (!user) {
+      // Add a small delay to prevent race conditions with auth state updates
+      const timeoutId = setTimeout(() => {
+        if (!user) {
+          console.log('🔄 No user found, redirecting to home...');
+          router.replace('/');
+        }
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
     }
-    
+
     // TODO: Email verification check can be re-enabled later when billing or premium features are introduced
     // For now, all users can access chat immediately after signup
-  }, [session, status, router]);
+  }, [user, loading]);
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] flex items-center justify-center">
         <motion.div 
@@ -159,7 +280,7 @@ export default function ChatPage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] flex items-center justify-center">
         <motion.div 
@@ -209,6 +330,7 @@ export default function ChatPage() {
           onOpenPictureGenerator={() => setActiveModal('picture')}
           onOpenVoiceGenerator={() => setActiveModal('voiceover')}
           onCloseSidebar={() => setSidebarOpen(false)}
+          onLoadConversation={loadConversation}
         />
       </div>
 

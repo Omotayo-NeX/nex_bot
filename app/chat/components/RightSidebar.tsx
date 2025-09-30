@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
 import { Settings, MessageSquare, Image, Code2, Thermometer, BarChart3, Crown, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,19 +15,23 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ selectedModel, onModelChange, temperature, onTemperatureChange }: RightSidebarProps) {
-  const { data: session } = useSession();
+  const { user, session } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'images' | 'code' | 'usage'>('chat');
   const [userPlan, setUserPlan] = useState<PlanType>('free');
-  
+
   useEffect(() => {
-    if (session?.user?.id) {
+    if (user && session) {
       fetchUserPlan();
     }
-  }, [session]);
+  }, [user, session]);
 
   const fetchUserPlan = async () => {
     try {
-      const response = await fetch('/api/user/usage');
+      const response = await fetch('/api/user/usage', {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setUserPlan(data.plan);

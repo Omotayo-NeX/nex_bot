@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -35,26 +35,26 @@ interface ModelsResponse {
 }
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { user, session, loading: authLoading } = useAuth();
   const router = useRouter();
   const { selectedModel, setSelectedModel, temperature, setTemperature } = useSettings();
-  
+
   const [availableModels, setAvailableModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<PlanType>('free');
 
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.replace('/auth/signin');
+    if (authLoading) return;
+
+    if (!user || !session) {
+      router.replace('/');
       return;
     }
 
     fetchModels();
     fetchUserPlan();
-  }, [session, status, router]);
+  }, [user, session, authLoading, router]);
 
   const fetchModels = async () => {
     try {
@@ -72,7 +72,11 @@ export default function SettingsPage() {
 
   const fetchUserPlan = async () => {
     try {
-      const response = await fetch('/api/user/usage');
+      const response = await fetch('/api/user/usage', {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setUserPlan(data.plan || 'free');
@@ -85,13 +89,14 @@ export default function SettingsPage() {
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
     setModelDropdownOpen(false);
-    
+
     // Save to backend
     try {
       await fetch('/api/user/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           preferredModel: modelId,
@@ -104,7 +109,7 @@ export default function SettingsPage() {
 
   const handleTemperatureChange = async (newTemp: number) => {
     setTemperature(newTemp);
-    
+
     // Debounce the API call to avoid too many requests
     clearTimeout((window as any).tempTimer);
     (window as any).tempTimer = setTimeout(async () => {
@@ -113,6 +118,7 @@ export default function SettingsPage() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
           },
           body: JSON.stringify({
             preferredTemperature: newTemp,
@@ -126,20 +132,20 @@ export default function SettingsPage() {
 
   const selectedModelInfo = availableModels.find(model => model.id === selectedModel);
 
-  if (status === 'loading' || loading) {
+  if (authLoading || loading) {
     return (
       <div className="h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] flex items-center justify-center">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <motion.div 
+          <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"
           />
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -152,7 +158,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (!session) {
+  if (!user || !session) {
     return null;
   }
 

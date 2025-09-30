@@ -52,3 +52,14 @@ yarn-error.log*
 
 /lib/generated/prisma
 tsconfig.tsbuildinfo
+
+# Database migration and fix scripts (temporary)
+check_database.sql
+complete_database_fix.sql
+database_migration.sql
+fix_database*.js
+fix_database*.sql
+fix_usage_stats.sql
+fix_user_table.sql
+run_database_fix.sh
+scripts/fix_*.js

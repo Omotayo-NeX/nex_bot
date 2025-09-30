@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { X, Download, Image as ImageIcon, Loader2, RefreshCw, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 interface ImageHistory {
   id: string;
@@ -23,6 +24,7 @@ interface PictureGeneratorModalProps {
 }
 
 export default function PictureGeneratorModal({ onClose }: PictureGeneratorModalProps) {
+  const { session } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
   const [revisedPrompt, setRevisedPrompt] = useState<string>('');
@@ -63,7 +65,10 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
     try {
       const response = await fetch('/api/generate-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ prompt: prompt.trim() }),
       });
 

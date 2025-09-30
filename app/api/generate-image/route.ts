@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 
 // Type definitions for provider responses
 interface ImageGenerationResponse {
@@ -79,9 +79,30 @@ async function generateWithOpenAI(prompt: string, model: string, apiKey: string)
 export async function POST(req: NextRequest) {
   try {
 
-    // Get user token for usage tracking
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    // Authenticate with Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -89,10 +110,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check feature access and usage limits
-    const accessCheck = await checkFeatureAccess(token.id as string, 'video');
+    const accessCheck = await checkFeatureAccess(user.id, 'image');
     if (!accessCheck.allowed) {
-      console.log(`🚫 [Image API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
-      return NextResponse.json({ 
+      console.log(`🚫 [Image API] Feature access denied for user ${user.id}: ${accessCheck.message}`);
+      return NextResponse.json({
         error: accessCheck.message,
         isLimitReached: true,
         currentUsage: accessCheck.usage,
@@ -155,8 +176,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Increment usage counter for successful image generation
-    await incrementUsage(token.id as string, 'video', 1);
-    console.log(`✅ [Usage] Video usage incremented for user ${token.id}`);
+    await incrementUsage(user.id, 'image', 1);
+    console.log(`✅ [Usage] Image usage incremented for user ${user.id}`);
 
     // Success response
     console.log(`✅ [OPENAI] Image generated successfully with ${model} for prompt: ${prompt.substring(0, 50)}...`);

@@ -9,6 +9,7 @@ interface ChatBubbleProps {
     role: 'user' | 'assistant';
     content: string;
     timestamp: number;
+    images?: string[];
   };
   index: number;
   userName?: string;
@@ -71,6 +72,23 @@ export default function ChatBubble({ message, index, userName }: ChatBubbleProps
                 : 'bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-100'
             }`}
           >
+            {/* Images if present */}
+            {message.images && message.images.length > 0 && (
+              <div className={`mb-3 grid ${message.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                {message.images.map((img, idx) => (
+                  <div key={idx} className="relative rounded-lg overflow-hidden">
+                    <Image
+                      src={img}
+                      alt={`Uploaded image ${idx + 1}`}
+                      width={200}
+                      height={200}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Message Text */}
             <div className={`prose ${isUser ? 'prose-invert' : ''} max-w-none`}>
               <p className={`whitespace-pre-wrap leading-relaxed text-sm md:text-base ${

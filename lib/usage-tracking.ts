@@ -7,12 +7,13 @@ export interface UserUsage {
   chat_used_today: number;
   videos_generated_this_week: number;
   voice_minutes_this_week: number;
+  images_generated_this_week: number;
   plan_expires_at: Date | null;
 }
 
 export async function getUserUsage(userId: string): Promise<UserUsage | null> {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -20,11 +21,15 @@ export async function getUserUsage(userId: string): Promise<UserUsage | null> {
         chat_used_today: true,
         videos_generated_this_week: true,
         voice_minutes_this_week: true,
+        images_generated_this_week: true,
         plan_expires_at: true,
       },
     });
 
-    if (!user) return null;
+    if (!user) {
+      console.log('❌ User not found in usage-tracking:', userId);
+      return null;
+    }
 
     return {
       id: user.id,
@@ -32,6 +37,7 @@ export async function getUserUsage(userId: string): Promise<UserUsage | null> {
       chat_used_today: user.chat_used_today || 0,
       videos_generated_this_week: user.videos_generated_this_week || 0,
       voice_minutes_this_week: user.voice_minutes_this_week || 0,
+      images_generated_this_week: user.images_generated_this_week || 0,
       plan_expires_at: user.plan_expires_at,
     };
   } catch (error) {
@@ -42,7 +48,7 @@ export async function getUserUsage(userId: string): Promise<UserUsage | null> {
 
 export async function checkFeatureAccess(
   userId: string,
-  feature: 'chat' | 'video' | 'voice'
+  feature: 'chat' | 'video' | 'voice' | 'image'
 ): Promise<{ allowed: boolean; usage: UserUsage | null; message?: string }> {
   const usage = await getUserUsage(userId);
   
@@ -80,11 +86,19 @@ export async function checkFeatureAccess(
       break;
     case 'voice':
       currentUsage = usage.voice_minutes_this_week;
-      limitMessage = usage.plan === 'free' ? 
+      limitMessage = usage.plan === 'free' ?
         'Weekly voice limit reached (5 min/week). Upgrade to Pro for 300 minutes/month.' :
         usage.plan === 'pro' ?
         'Monthly voice limit reached (300 min/month). Upgrade to Enterprise for unlimited voice.' :
         'Voice feature temporarily unavailable.';
+      break;
+    case 'image':
+      currentUsage = usage.images_generated_this_week;
+      limitMessage = usage.plan === 'free' ?
+        'Weekly image limit reached (10/week). Upgrade to Pro for 50 images/week.' :
+        usage.plan === 'pro' ?
+        'Weekly image limit reached (50/week). Upgrade to Enterprise for unlimited images.' :
+        'Image generation feature temporarily unavailable.';
       break;
     default:
       return { allowed: false, usage, message: 'Invalid feature' };
@@ -101,7 +115,7 @@ export async function checkFeatureAccess(
 
 export async function incrementUsage(
   userId: string,
-  feature: 'chat' | 'video' | 'voice',
+  feature: 'chat' | 'video' | 'voice' | 'image',
   amount: number = 1
 ): Promise<boolean> {
   try {
@@ -123,6 +137,10 @@ export async function incrementUsage(
       case 'voice':
         updateData.voice_minutes_this_week = { increment: amount };
         usageStatsField = 'voiceMinutes';
+        break;
+      case 'image':
+        updateData.images_generated_this_week = { increment: amount };
+        usageStatsField = 'imagesGenerated';
         break;
       default:
         return false;
@@ -182,6 +200,7 @@ export async function resetWeeklyUsage(): Promise<number> {
       data: {
         videos_generated_this_week: 0,
         voice_minutes_this_week: 0,
+        images_generated_this_week: 0,
         last_reset_date: new Date(),
       },
     });

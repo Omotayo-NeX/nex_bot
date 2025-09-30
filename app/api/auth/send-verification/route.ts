@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { supabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
-    // Get authenticated user
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    // Authenticate with Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = authHeader.substring(7);
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !authUser) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -16,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: token.id as string },
+      where: { id: authUser.id },
       select: { email: true, emailVerified: true }
     });
 

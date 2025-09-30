@@ -1,10 +1,11 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Square, Loader2 } from 'lucide-react';
+import { Send, Mic, Square, Loader2, Image as ImageIcon, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, images?: string[]) => void;
   isLoading: boolean;
 }
 
@@ -13,7 +14,9 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -86,12 +89,58 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      alert('Please select valid image files');
+      return;
+    }
+
+    const newImages: string[] = [];
+    let loadedCount = 0;
+
+    imageFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newImages.push(reader.result as string);
+        loadedCount++;
+
+        if (loadedCount === imageFiles.length) {
+          setSelectedImages(prev => [...prev, ...newImages].slice(0, 4)); // Max 4 images
+        }
+      };
+      reader.onerror = () => {
+        console.error('Error reading file:', file.name);
+        loadedCount++;
+
+        if (loadedCount === imageFiles.length) {
+          setSelectedImages(prev => [...prev, ...newImages].slice(0, 4));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
 
-    onSendMessage(input);
+    onSendMessage(input || 'What do you see in this image?', selectedImages.length > 0 ? selectedImages : undefined);
     setInput('');
+    setSelectedImages([]);
 
     // Reset textarea height
     if (inputRef.current) {
@@ -135,6 +184,31 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
     <footer className="fixed bottom-0 left-0 lg:left-[280px] right-0 border-t border-white/10 bg-[#0d0d0d] z-40">
       <div className="mx-auto max-w-4xl px-4 py-3">
         <form onSubmit={handleSubmit}>
+          {/* Image Previews */}
+          {selectedImages.length > 0 && (
+            <div className="mb-2 flex gap-2 flex-wrap">
+              {selectedImages.map((image, index) => (
+                <div key={index} className="relative group">
+                  <Image
+                    src={image}
+                    alt={`Upload ${index + 1}`}
+                    width={80}
+                    height={80}
+                    className="rounded-lg object-cover border border-white/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-black/40 px-3 py-2 backdrop-blur">
             <textarea
               ref={inputRef}
@@ -155,6 +229,26 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
               }}
             />
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-gray-400 hover:text-white/70 disabled:text-gray-600 disabled:cursor-not-allowed transition-all rounded-lg"
+              disabled={isLoading || selectedImages.length >= 4}
+              title={selectedImages.length >= 4 ? 'Maximum 4 images' : 'Upload image'}
+              aria-label="Upload image"
+            >
+              <ImageIcon className="h-5 w-5" />
+            </button>
+
             <button
               type="button"
               onClick={startRecording}
@@ -174,7 +268,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
 
             <button
               type="submit"
-              disabled={!input.trim() || isLoading}
+              disabled={(!input.trim() && selectedImages.length === 0) || isLoading}
               className="p-2 text-gray-400 hover:text-white/70 disabled:text-gray-600 disabled:cursor-not-allowed transition-all"
               aria-label="Send message"
             >
@@ -194,7 +288,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             className="mt-2 text-center"
           >
             <p className="text-xs text-red-400 flex items-center justify-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse block" />
               <span>Listening... Speak now</span>
             </p>
           </motion.div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -11,9 +11,9 @@ import { supabase } from '@/lib/supabase';
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const [resending, setResending] = useState(false);
-  
+
   const error = searchParams.get('error');
 
   useEffect(() => {
@@ -27,13 +27,13 @@ function VerifyEmailContent() {
     }
 
     // If user is already verified, redirect them
-    if (session?.user?.emailVerified) {
+    if (user?.email_confirmed_at) {
       router.push('/chat');
     }
-  }, [error, session, router]);
+  }, [error, user, router]);
 
   const handleResendVerification = async () => {
-    if (!session?.user?.email) {
+    if (!user?.email) {
       toast.error('No email found for resending verification');
       return;
     }
@@ -42,7 +42,7 @@ function VerifyEmailContent() {
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: session.user.email,
+        email: user.email,
         options: {
           emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         },
@@ -62,7 +62,7 @@ function VerifyEmailContent() {
     }
   };
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center">
         <div className="text-white">Loading...</div>
@@ -109,7 +109,7 @@ function VerifyEmailContent() {
               <p className="text-gray-300 leading-relaxed">
                 We've sent a verification link to{' '}
                 <span className="font-medium text-blue-400">
-                  {session?.user?.email || 'your email address'}
+                  {user?.email || 'your email address'}
                 </span>
                 . Click the link in the email to verify your account before logging in.
               </p>
@@ -124,7 +124,7 @@ function VerifyEmailContent() {
             <div className="space-y-3">
               <button
                 onClick={handleResendVerification}
-                disabled={resending || !session?.user?.email}
+                disabled={resending || !user?.email}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-blue-500/25"
               >
                 {resending ? 'Sending...' : 'Resend verification email'}

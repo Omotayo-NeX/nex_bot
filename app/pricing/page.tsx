@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,7 +10,7 @@ import { PLANS, type PlanType } from '@/lib/plans';
 import { toast } from 'sonner';
 
 export default function PricingPage() {
-  const { data: session } = useSession();
+  const { user, session } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState<PlanType | null>(null);
 
@@ -32,8 +32,11 @@ export default function PricingPage() {
       // Redirect to Paystack checkout
       const response = await fetch('/api/paystack/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
           plan: planId
         }),
       });
@@ -61,10 +64,11 @@ export default function PricingPage() {
         <div className="flex items-center justify-between mb-12">
           <Link href="/chat" className="flex items-center space-x-3">
             <div className="relative w-10 h-10">
-              <Image 
-                src="/Nex_logomark_white.png" 
-                alt="NeX Logo" 
+              <Image
+                src="/Nex_logomark_white.png"
+                alt="NeX Logo"
                 fill
+                sizes="40px"
                 className="object-contain"
               />
             </div>

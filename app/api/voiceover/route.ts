@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from "@/lib/prisma";
 import { checkFeatureAccess, incrementUsage } from '@/lib/usage-tracking';
-import { getToken } from 'next-auth/jwt';
 
 // Voice ID mappings for ElevenLabs voices
 const VOICE_IDS = {
@@ -17,9 +15,30 @@ const VOICE_IDS = {
 
 export async function POST(req: NextRequest) {
   try {
-    // Check authentication
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    // Authenticate with Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in to use voice generation.' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required. Please sign in to use voice generation.' },
         { status: 401 }
@@ -27,9 +46,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check feature access and usage limits
-    const accessCheck = await checkFeatureAccess(token.id as string, 'voice');
+    const accessCheck = await checkFeatureAccess(user.id, 'voice');
     if (!accessCheck.allowed) {
-      console.log(`🚫 [Voice API] Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      console.log(`🚫 [Voice API] Feature access denied for user ${user.id}: ${accessCheck.message}`);
       return NextResponse.json({ 
         error: accessCheck.message,
         isLimitReached: true,
@@ -66,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     // Log the voice request
     await prisma.voiceRequest.create({
-      data: { userId: token.id as string },
+      data: { userId: user.id },
     });
 
     // Generate voice with ElevenLabs
@@ -133,8 +152,8 @@ export async function POST(req: NextRequest) {
     const estimatedMinutes = Math.max(1, Math.ceil(wordCount / 150)); // Minimum 1 minute
 
     // Increment usage counter for successful voice generation
-    await incrementUsage(token.id as string, 'voice', estimatedMinutes);
-    console.log(`✅ [Usage] Voice usage incremented by ${estimatedMinutes} minutes for user ${token.id}`);
+    await incrementUsage(user.id, 'voice', estimatedMinutes);
+    console.log(`✅ [Usage] Voice usage incremented by ${estimatedMinutes} minutes for user ${user.id}`);
 
     // Return the audio file
     return new NextResponse(audioBuffer, {

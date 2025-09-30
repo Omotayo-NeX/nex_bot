@@ -1,159 +1,174 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
-import { supabase } from "@/lib/supabase";
+import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/prisma';
 
-export async function POST(req: NextRequest) {
+// Helper function to create user in Prisma database
+async function createPrismaUser(userId: string, email: string, name?: string) {
   try {
-    console.log('🔍 Starting signup process...');
-    
-    const { name, email, password } = await req.json();
-    console.log('📝 Received data:', { name, email, passwordLength: password?.length });
+    console.log('📝 Creating Prisma user record:', { userId, email, name });
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (existingUser) {
+      console.log('✅ User already exists in Prisma database');
+      return existingUser;
+    }
+
+    // Create new user record
+    const user = await prisma.user.create({
+      data: {
+        id: userId,
+        email: email,
+        name: name || email.split('@')[0],
+        plan: 'free',
+        subscriptionStatus: 'inactive',
+        emailVerified: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        last_reset_date: new Date(),
+        preferred_model: 'gpt-4o-mini',
+        preferred_temperature: 0.7,
+        chat_used_today: 0,
+        videos_generated_this_week: 0,
+        voice_minutes_this_week: 0,
+        images_generated_this_week: 0,
+      }
+    });
+
+    console.log('✅ Prisma user record created successfully');
+    return user;
+  } catch (error: any) {
+    console.error('❌ Error creating Prisma user:', error);
+    // Don't throw - we'll handle this gracefully
+    return null;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { email, password, name } = body;
 
     if (!email || !password) {
-      console.log('❌ Missing email or password');
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    console.log('👤 Checking if user exists...');
-    // Check if user already exists in Prisma
-    const existingUser = await prisma.user.findUnique({ 
-      where: { email } 
-    });
-    console.log('🔍 Existing user check result:', !!existingUser);
-    
-    if (existingUser) {
-      console.log('⚠️ User already exists');
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
-    }
+    console.log('🔐 Server-side signup attempt:', { email, name });
 
-    // TODO: Email verification can be re-enabled later when billing or premium features are introduced
-    // For now, we create users without email verification for immediate access
-    console.log('👤 Creating Supabase auth user without email verification...');
-    
-    // Create user in Supabase Auth without email verification
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // First, try standard signup with email verification
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
-        // Skip email confirmation for immediate account access
         data: {
-          email_confirmed: true
+          name: name || '',
+        },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    });
+
+    console.log('📝 Signup response:', { data, error });
+
+    // If email sending fails, fall back to admin creation (development mode)
+    if (error && (error.message.includes('Error sending confirmation email') || error.message.includes('email rate limit exceeded'))) {
+      console.log('⚠️ Email sending failed, falling back to admin creation...');
+
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
         }
-      },
-    });
+      );
 
-    // Handle Supabase auth errors gracefully
-    let supabaseUserId = null;
-
-    if (authError) {
-      console.error('❌ Supabase auth error:', authError);
-      console.log('⚠️ Supabase signup failed, creating user directly in database...');
-      
-      // Generate a UUID for the user since Supabase failed
-      const { randomUUID } = require('crypto');
-      supabaseUserId = randomUUID();
-    } else if (!authData.user) {
-      console.error('❌ No user data returned from Supabase');
-      console.log('⚠️ Creating user directly in database...');
-      
-      const { randomUUID } = require('crypto');
-      supabaseUserId = randomUUID();
-    } else {
-      supabaseUserId = authData.user.id;
-      console.log('✅ Supabase user created successfully without email verification');
-    }
-
-    console.log('🔒 Hashing password for Prisma...');
-    // Hash password for Prisma storage
-    const hashedPassword = await bcrypt.hash(password, 12);
-    console.log('✅ Password hashed successfully');
-
-    console.log('👤 Creating user in Prisma...');
-    // Create user in Prisma with Supabase user ID (or generated UUID if Supabase failed)
-    // Email is immediately verified for seamless user experience
-    const user = await prisma.user.create({
-      data: {
-        id: supabaseUserId, // Use Supabase user ID or fallback UUID
-        name: name || null,
+      // Create user with admin client as fallback
+      const { data: adminData, error: adminError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: hashedPassword,
-        emailVerified: new Date(), // Auto-verify all users for immediate access
-      },
-    });
-    console.log('✅ User created successfully:', user.id);
+        password,
+        user_metadata: {
+          name: name || '',
+        },
+        email_confirm: true, // Force confirm email
+      });
 
-    const responseMessage = "Account created successfully! You can sign in immediately.";
+      if (adminError) {
+        return NextResponse.json(
+          { error: adminError.message },
+          { status: 400 }
+        );
+      }
 
-    return NextResponse.json(
-      { 
-        message: responseMessage,
-        userId: user.id,
-        emailSent: false // No email verification needed
-      },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('💥 Signup error:', error);
-    console.error('📋 Error message:', error.message);
-    console.error('🔢 Error code:', error.code);
-    console.error('📊 Error meta:', error.meta);
-    
-    // Determine specific error message based on error type
-    let userMessage = "Failed to create account. Please try again.";
-    let statusCode = 500;
-    
-    if (error.code === 'P1001') {
-      // Database connection error
-      userMessage = "Database connection failed. Please try again later.";
-      console.error('🔌 Database connection error - Check DATABASE_URL configuration');
-      console.error('🔌 DATABASE_URL host:', process.env.DATABASE_URL?.match(/@([^:]+)/)?.[1] || 'not found');
-      console.error('🔌 Full connection error:', error.message);
-    } else if (error.code === 'P1003') {
-      // Database does not exist error
-      userMessage = "Database configuration error. Please contact support.";
-      console.error('🗄️ Database does not exist error:', error.message);
-    } else if (error.code === 'P1017') {
-      // Server has closed the connection
-      userMessage = "Database connection lost. Please try again.";
-      console.error('📡 Database server closed connection:', error.message);
-    } else if (error.code === 'P2002') {
-      // Unique constraint violation (user already exists)
-      userMessage = "An account with this email already exists. Please try signing in instead.";
-      statusCode = 409;
-    } else if (error.code === 'P1008') {
-      // Operation timeout
-      userMessage = "Request timed out. Please try again.";
-      statusCode = 408;
-    } else if (error.message?.includes('email') && error.message?.includes('unique')) {
-      // Email already exists
-      userMessage = "An account with this email already exists. Please try signing in instead.";
-      statusCode = 409;
-    } else if (error.message?.includes('password')) {
-      // Password related error
-      userMessage = "Invalid password format. Please try a different password.";
-      statusCode = 400;
+      if (adminData.user) {
+        console.log('✅ User created with admin client, now signing in...');
+
+        // Create corresponding Prisma user record
+        await createPrismaUser(adminData.user.id, email, name);
+
+        // Sign in the user to get session
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          console.error('❌ Sign in error after user creation:', signInError);
+          return NextResponse.json(
+            { error: 'User created but sign in failed. Please try signing in manually.' },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          user: signInData.user,
+          session: signInData.session,
+          requiresEmailVerification: false,
+          message: 'Account created successfully! (Email service unavailable, but account is verified)'
+        });
+      }
     }
-    
+
+    // Handle other errors
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
+    // Normal success case - email verification should work
+    const requiresConfirmation = !data.user?.email_confirmed_at && !data.session;
+
+    // Create corresponding Prisma user record if user was created
+    if (data.user) {
+      await createPrismaUser(data.user.id, email, name);
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: data.user,
+      session: data.session,
+      requiresEmailVerification: requiresConfirmation,
+      message: requiresConfirmation
+        ? 'Account created! Please check your email and click the verification link to complete your registration.'
+        : 'Account created successfully!'
+    });
+
+  } catch (error: any) {
+    console.error('❌ Signup error:', error);
     return NextResponse.json(
-      { 
-        error: userMessage,
-        type: error.code || 'unknown_error',
-        details: process.env.NODE_ENV === 'development' ? {
-          message: error.message,
-          code: error.code,
-          meta: error.meta,
-          stack: error.stack
-        } : undefined
-      },
-      { status: statusCode }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

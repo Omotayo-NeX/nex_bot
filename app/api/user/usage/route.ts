@@ -1,13 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 import { getUserUsage } from '@/lib/usage-tracking';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    // Check authentication
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    // Authenticate with Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -15,8 +36,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user usage data
-    const usage = await getUserUsage(token.id as string);
-    
+    const usage = await getUserUsage(user.id);
+
     if (!usage) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -25,8 +46,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Get email verification status
-    const user = await prisma.user.findUnique({
-      where: { id: token.id as string },
+    const userRecord = await prisma.user.findUnique({
+      where: { id: user.id },
       select: { emailVerified: true }
     });
 
@@ -36,7 +57,7 @@ export async function GET(req: NextRequest) {
       videos_generated_this_week: usage.videos_generated_this_week,
       voice_minutes_this_week: usage.voice_minutes_this_week,
       plan_expires_at: usage.plan_expires_at,
-      emailVerified: user?.emailVerified ? true : false,
+      emailVerified: userRecord?.emailVerified ? true : false,
     });
 
   } catch (error) {

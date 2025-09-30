@@ -3,7 +3,7 @@ import { executeMarketingTool } from '../../../lib/marketing/tools';
 import { checkRateLimit, getClientIP } from '../../../lib/rate-limit';
 import { getKnowledgeContext, shouldUseKnowledge, formatKnowledgeSources, validateKnowledgeSetup } from '../../../lib/knowledge/retrieval';
 import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '../../../lib/prisma';
 
 // export const runtime = 'edge'; // Temporarily disabled for knowledge retrieval testing
@@ -102,11 +102,23 @@ export async function POST(req: NextRequest) {
     
     console.log(`✅ [Chat API] ${requestId} Environment variables validated`);
     
-    // 2. AUTHENTICATION CHECK
-    const token = await getToken({ req });
-    if (!token || !token.id) {
-      console.log(`🚫 [Chat API] ${requestId} Authentication failed - no token or user ID`);
-      return new Response(JSON.stringify({ 
+    // 2. AUTHENTICATION CHECK - Using Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log(`🚫 [Chat API] ${requestId} Authentication failed - no authorization header`);
+      return new Response(JSON.stringify({
         error: 'Authentication required',
         response: 'Please sign in to use the chat feature.',
         requestId
@@ -115,13 +127,77 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    
-    console.log(`✅ [Chat API] ${requestId} User authenticated: ${token.id}`);
+
+    const accessToken = authHeader.substring(7);
+
+    // Verify the JWT token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      console.log(`🚫 [Chat API] ${requestId} Authentication failed - invalid token`);
+      return new Response(JSON.stringify({
+        error: 'Authentication required',
+        response: 'Please sign in to use the chat feature.',
+        requestId
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`✅ [Chat API] ${requestId} User authenticated: ${user.id} (${user.email})`);
+
+    // 2.5. ENSURE USER EXISTS IN PRISMA DATABASE
+    try {
+      let userRecord = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { id: true, email: true, plan: true }
+      });
+
+      console.log(`🔍 [Chat API] ${requestId} User lookup result:`, userRecord ? 'FOUND' : 'NOT FOUND');
+
+      if (!userRecord) {
+        console.log(`🔧 [Chat API] ${requestId} Creating new user record in Prisma for: ${user.id}`);
+        await prisma.user.create({
+          data: {
+            id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+            plan: 'free',
+            subscriptionStatus: 'inactive',
+            emailVerified: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            last_reset_date: new Date(),
+            preferred_model: 'gpt-4o-mini',
+            preferred_temperature: 0.7,
+            chat_used_today: 0,
+            videos_generated_this_week: 0,
+            voice_minutes_this_week: 0,
+            images_generated_this_week: 0,
+          }
+        });
+        console.log(`✅ [Chat API] ${requestId} User record created in Prisma`);
+      }
+    } catch (error: any) {
+      console.error(`❌ [Chat API] ${requestId} Failed to ensure user exists in Prisma:`, error);
+
+      // Return error instead of continuing - this is critical
+      return new Response(JSON.stringify({
+        error: 'User setup failed',
+        response: 'Unable to set up your account. Please try signing out and signing back in.',
+        details: isDev ? { error: error.message, stack: error.stack } : undefined,
+        requestId
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // 3. FEATURE ACCESS AND USAGE LIMITS CHECK
     let accessCheck;
     try {
-      accessCheck = await checkFeatureAccess(token.id as string, 'chat');
+      accessCheck = await checkFeatureAccess(user.id, 'chat');
       console.log(`📊 [Chat API] ${requestId} Usage check result:`, {
         allowed: accessCheck.allowed,
         usage: accessCheck.usage,
@@ -131,7 +207,7 @@ export async function POST(req: NextRequest) {
       console.error(`❌ [Chat API] ${requestId} USAGE CHECK ERROR:`, {
         error: error.message,
         stack: isDev ? error.stack : undefined,
-        userId: token.id
+        userId: user.id
       });
       
       return new Response(JSON.stringify({
@@ -146,7 +222,7 @@ export async function POST(req: NextRequest) {
     }
     
     if (!accessCheck.allowed) {
-      console.log(`🚫 [Chat API] ${requestId} Feature access denied for user ${token.id}: ${accessCheck.message}`);
+      console.log(`🚫 [Chat API] ${requestId} Feature access denied for user ${user.id}: ${accessCheck.message}`);
       return new Response(JSON.stringify({ 
         error: accessCheck.message,
         response: `You have reached your chat limit. ${accessCheck.message}`,
@@ -221,12 +297,24 @@ export async function POST(req: NextRequest) {
       // Use model and temperature from request body, or fetch user preferences
       selectedModel = body.model;
       temperature = body.temperature;
+
+      // Check if any message contains images
+      const hasImages = messages.some((msg: any) => msg.images && msg.images.length > 0);
+
+      // If images are present, ensure we're using a vision-capable model
+      if (hasImages) {
+        const visionModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4-vision-preview'];
+        if (!visionModels.includes(selectedModel)) {
+          console.log(`⚠️ [Chat API] ${requestId} Switching model from ${selectedModel} to gpt-4o for vision support`);
+          selectedModel = 'gpt-4o-mini'; // Default to gpt-4o-mini for cost efficiency
+        }
+      }
       
       // If model or temperature not provided, fetch user preferences
       if (!selectedModel || temperature === undefined) {
         try {
           const userSettings = await prisma.user.findUnique({
-            where: { id: token.id as string },
+            where: { id: user.id },
             select: {
               preferred_model: true,
               preferred_temperature: true
@@ -306,25 +394,59 @@ export async function POST(req: NextRequest) {
 
     // Get conversation context for better memory
     let modifiedMessages = [...messages];
-    
+
     if (isContinueRequest && messages.length > 1) {
       // Find the last assistant message to continue from
       const lastAssistantIndex = messages.findLastIndex((msg: any) => msg.role === 'assistant');
       if (lastAssistantIndex !== -1) {
         const lastAssistantMessage = messages[lastAssistantIndex].content;
-        
+
+        // Extract text from content (handle both string and array formats)
+        const textContent = typeof lastAssistantMessage === 'string'
+          ? lastAssistantMessage
+          : Array.isArray(lastAssistantMessage)
+            ? lastAssistantMessage.find((item: any) => item.type === 'text')?.text || ''
+            : '';
+
         // Replace the continue request with a more specific instruction
         const lastMessageIndex = modifiedMessages.length - 1;
         modifiedMessages[lastMessageIndex] = {
           ...modifiedMessages[lastMessageIndex],
-          content: `Continue your previous response about "${lastAssistantMessage.substring(0, 100)}...". Pick up exactly where you left off without repeating any content. Provide the next part of your explanation naturally.`
+          content: `Continue your previous response about "${textContent.substring(0, 100)}...". Pick up exactly where you left off without repeating any content. Provide the next part of your explanation naturally.`
         };
       }
     }
 
     // Ensure we maintain context by keeping the full conversation history
     // but limit to last 30 messages to prevent token limit issues while maintaining better context
-    const contextMessages = modifiedMessages.slice(-30); // Keep last 30 messages (15 exchanges)
+    // Transform messages to support vision API format when images are present
+    const contextMessages = modifiedMessages.slice(-30).map((msg: any) => {
+      // If message has images, use vision API format
+      if (msg.images && msg.images.length > 0) {
+        const contentArray: any[] = [
+          { type: 'text', text: msg.content || 'What do you see in this image?' }
+        ];
+
+        // Add all images
+        msg.images.forEach((imageUrl: string) => {
+          contentArray.push({
+            type: 'image_url',
+            image_url: { url: imageUrl }
+          });
+        });
+
+        return {
+          role: msg.role,
+          content: contentArray
+        };
+      }
+
+      // Regular text message
+      return {
+        role: msg.role,
+        content: msg.content
+      };
+    }); // Keep last 30 messages (15 exchanges)
 
     // Check if the user is requesting specific marketing tools (but not if it's a continue request)
     const toolResponse = !isContinueRequest ? detectAndExecuteMarketingTool(lastMessage) : null;
@@ -360,12 +482,17 @@ export async function POST(req: NextRequest) {
           console.log(`📭 [Chat API] ${requestId} No relevant knowledge found`);
         }
       } catch (error: any) {
+        // Extract text for logging (handle both string and array formats)
+        const messageText = typeof lastMessage === 'string'
+          ? lastMessage
+          : String(lastMessage);
+
         console.error(`❌ [Chat API] ${requestId} KNOWLEDGE RETRIEVAL ERROR:`, {
           error: error.message,
           stack: isDev ? error.stack : undefined,
-          query: lastMessage.substring(0, 100)
+          query: messageText.substring(0, 100)
         });
-        
+
         // Continue without knowledge - don't fail the request
         console.log(`⚠️ [Chat API] ${requestId} Continuing without knowledge due to error`);
       }
@@ -472,11 +599,19 @@ IMPORTANT:
       if (isDev) {
         console.log(`📤 [Chat API] ${requestId} OpenAI request:`, {
           ...requestBody,
-          messages: requestBody.messages.map((msg, idx) => ({
-            role: msg.role,
-            contentLength: msg.content.length,
-            contentPreview: msg.content.substring(0, 100) + '...'
-          }))
+          messages: requestBody.messages.map((msg, idx) => {
+            // Handle both string and array content formats
+            const isArray = Array.isArray(msg.content);
+            const contentText = isArray
+              ? msg.content.find((item: any) => item.type === 'text')?.text || '[vision message]'
+              : msg.content;
+
+            return {
+              role: msg.role,
+              contentLength: isArray ? JSON.stringify(msg.content).length : msg.content.length,
+              contentPreview: typeof contentText === 'string' ? contentText.substring(0, 100) + '...' : '[non-text content]'
+            };
+          })
         });
       }
       
@@ -600,13 +735,13 @@ IMPORTANT:
 
     // 9. INCREMENT USAGE COUNTER
     try {
-      await incrementUsage(token.id as string, 'chat', 1);
-      console.log(`✅ [Chat API] ${requestId} Usage incremented for user ${token.id}`);
+      await incrementUsage(user.id, 'chat', 1);
+      console.log(`✅ [Chat API] ${requestId} Usage incremented for user ${user.id}`);
     } catch (error: any) {
       console.error(`❌ [Chat API] ${requestId} USAGE INCREMENT ERROR:`, {
         error: error.message,
         stack: isDev ? error.stack : undefined,
-        userId: token.id
+        userId: user.id
       });
       
       // Don't fail the request if usage increment fails

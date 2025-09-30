@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { 
   MessageSquare, 
@@ -117,26 +117,36 @@ function ProgressBar({
 }
 
 export default function UsageDisplay() {
-  const { data: session } = useSession();
+  const { user, session } = useAuth();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (user?.id && session?.access_token) {
       fetchUsage();
     }
-  }, [session]);
+  }, [user, session]);
 
   const fetchUsage = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/usage');
-      
+
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await fetch('/api/usage', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
         throw new Error('Failed to fetch usage data');
       }
-      
+
       const data = await response.json();
       setUsage(data);
       setError(null);

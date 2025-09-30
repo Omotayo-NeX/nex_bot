@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 
 // Helper functions for model information
 function getModelDisplayName(modelId: string): string {
@@ -80,9 +80,30 @@ function getFallbackModels() {
 
 export async function GET(req: NextRequest) {
   try {
-    // Check authentication
-    const token = await getToken({ req });
-    if (!token || !token.id) {
+    // Authenticate with Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

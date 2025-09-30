@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
 
 interface LeftSidebarProps {
@@ -10,6 +10,7 @@ interface LeftSidebarProps {
   onOpenPictureGenerator: () => void;
   onOpenVoiceGenerator: () => void;
   onCloseSidebar?: () => void;
+  onLoadConversation?: (id: string) => void;
 }
 
 interface UserData {
@@ -20,31 +21,45 @@ interface UserData {
   plan: string;
 }
 
-export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenVoiceGenerator, onCloseSidebar }: LeftSidebarProps) {
-  const { data: session } = useSession();
+interface ConversationData {
+  id: string;
+  title: string;
+  isPinned: boolean;
+  timestamp: string;
+  preview: string;
+}
+
+export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenVoiceGenerator, onCloseSidebar, onLoadConversation }: LeftSidebarProps) {
+  const { user, session, signOut, loading } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   // const [sendingVerification, setSendingVerification] = useState(false); // TODO: Re-enable when email verification is needed
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const [pinnedChats] = useState([
-    { id: '1', title: 'Marketing Strategy Planning', timestamp: '2 hours ago' },
-    { id: '2', title: 'Content Calendar Ideas', timestamp: '1 day ago' },
-  ]);
+  const [conversations, setConversations] = useState<ConversationData[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
 
-  const [recentChats] = useState([
-    { id: '3', title: 'Social Media Automation', timestamp: '3 days ago' },
-    { id: '4', title: 'Email Campaign Setup', timestamp: '1 week ago' },
-    { id: '5', title: 'Website Analytics Review', timestamp: '1 week ago' },
-    { id: '6', title: 'SEO Optimization Tips', timestamp: '2 weeks ago' },
-  ]);
-
-  // Fetch user data
+  // Fetch user data and conversations
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchUserData();
+    if (loading) {
+      // Still loading, don't do anything yet
+      return;
     }
-  }, [session]);
+
+    if (user?.id) {
+      fetchUserData();
+      fetchConversations();
+    } else {
+      // User is null and not loading, set fallback data
+      setUserData({
+        id: '',
+        name: 'Guest User',
+        email: 'guest@example.com',
+        emailVerified: false,
+        plan: 'free'
+      });
+    }
+  }, [user, loading]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -60,26 +75,93 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
     };
   }, []);
 
+  const fetchConversations = async () => {
+    if (!user?.id || !session?.access_token) return;
+
+    setIsLoadingConversations(true);
+    try {
+      const response = await fetch('/api/conversations', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formattedConversations = data.map((conv: any) => ({
+          id: conv.id,
+          title: conv.title,
+          isPinned: conv.isPinned,
+          timestamp: formatTimestamp(conv.timestamp),
+          preview: conv.preview
+        }));
+        setConversations(formattedConversations);
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    if (diffInWeeks < 4) return `${diffInWeeks} week${diffInWeeks > 1 ? 's' : ''} ago`;
+
+    return date.toLocaleDateString();
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    if (onLoadConversation) {
+      onLoadConversation(conversationId);
+      if (onCloseSidebar) {
+        onCloseSidebar();
+      }
+    }
+  };
+
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/user/usage');
+      const response = await fetch('/api/usage', {
+        headers: {
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setUserData({
-          id: session?.user?.id || '',
-          name: session?.user?.name || 'User',
-          email: session?.user?.email || '',
+          id: user?.id || '',
+          name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+          email: user?.email || '',
           emailVerified: data.emailVerified || false,
           plan: data.plan || 'free'
+        });
+      } else {
+        // Fallback to basic user data if API fails
+        setUserData({
+          id: user?.id || '',
+          name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+          email: user?.email || '',
+          emailVerified: false,
+          plan: 'free'
         });
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Fallback to session data
+      // Fallback to user data
       setUserData({
-        id: session?.user?.id || '',
-        name: session?.user?.name || 'User',
-        email: session?.user?.email || '',
+        id: user?.id || '',
+        name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+        email: user?.email || '',
         emailVerified: false,
         plan: 'free'
       });
@@ -157,16 +239,17 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       </div>
 
       {/* Pinned Chats */}
-      {pinnedChats.length > 0 && (
+      {conversations.filter(conv => conv.isPinned).length > 0 && (
         <div className="px-4 pb-4">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
             <Pin className="w-3 h-3 mr-1" />
             Pinned Chats
           </h3>
           <div className="space-y-1">
-            {pinnedChats.map((chat) => (
+            {conversations.filter(conv => conv.isPinned).map((chat) => (
               <button
                 key={chat.id}
+                onClick={() => handleConversationClick(chat.id)}
                 className="w-full flex flex-col items-start px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
               >
                 <span className="text-sm font-medium truncate w-full text-left">{chat.title}</span>
@@ -184,15 +267,34 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
           Recent Chats
         </h3>
         <div className="space-y-1">
-          {recentChats.map((chat) => (
-            <button
-              key={chat.id}
-              className="w-full flex flex-col items-start px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
-            >
-              <span className="text-sm font-medium truncate w-full text-left">{chat.title}</span>
-              <span className="text-xs text-gray-500 group-hover:text-gray-400">{chat.timestamp}</span>
-            </button>
-          ))}
+          {isLoadingConversations ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
+            </div>
+          ) : conversations.filter(conv => !conv.isPinned).length > 0 ? (
+            conversations.filter(conv => !conv.isPinned).map((chat) => (
+              <button
+                key={chat.id}
+                onClick={() => handleConversationClick(chat.id)}
+                className="w-full flex flex-col items-start px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
+              >
+                <span className="text-sm font-medium truncate w-full text-left">{chat.title}</span>
+                <div className="flex justify-between items-center w-full">
+                  <span className="text-xs text-gray-500 group-hover:text-gray-400">{chat.timestamp}</span>
+                  {chat.preview && (
+                    <span className="text-xs text-gray-600 truncate ml-2 max-w-20">
+                      {chat.preview.substring(0, 20)}...
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-sm">No conversations yet</p>
+              <p className="text-xs mt-1">Start a new chat to see your history here</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -277,7 +379,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
-                          signOut({ callbackUrl: '/' });
+                          signOut();
                         }}
                         className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors text-sm"
                       >

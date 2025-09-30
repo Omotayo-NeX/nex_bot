@@ -3,10 +3,12 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import AuthModal from "./components/AuthModal";
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -71,10 +73,11 @@ export default function LandingPage() {
         <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             <div className="relative w-10 h-10">
-              <Image 
-                src="/Nex_logomark_white.png" 
-                alt="NeX Logo" 
+              <Image
+                src="/Nex_logomark_white.png"
+                alt="NeX Logo"
                 fill
+                sizes="40px"
                 className="object-contain filter brightness-0"
               />
             </div>
@@ -115,22 +118,26 @@ export default function LandingPage() {
             </Link>
             
             <div className="flex items-center space-x-4">
-              <Link href="/auth/signup" className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition"
+              >
                 Sign Up
-              </Link>
-              
+              </button>
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Link href="/auth/signin">
-                  <button className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300">
-                    <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
-                    <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
-                      Sign In →
-                    </span>
-                  </button>
-                </Link>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300"
+                >
+                  <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
+                  <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
+                    Sign In →
+                  </span>
+                </button>
               </motion.div>
             </div>
           </div>
@@ -166,33 +173,32 @@ export default function LandingPage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
         >
-          <Link href="/auth/signin">
-            <motion.button 
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700"
-            >
-              {/* White background */}
-              <span className="absolute inset-0.5 bg-white rounded-xl group-hover:opacity-0 transition-opacity duration-300"></span>
-              {/* Content */}
-              <span className="relative flex items-center text-purple-700 group-hover:text-white transition-colors duration-300">
-                Sign In to Get Started
-                <motion.svg
-                  className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </motion.svg>
-              </span>
-            </motion.button>
-          </Link>
+          <motion.button
+            onClick={() => setShowAuthModal(true)}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700"
+          >
+            {/* White background */}
+            <span className="absolute inset-0.5 bg-white rounded-xl group-hover:opacity-0 transition-opacity duration-300"></span>
+            {/* Content */}
+            <span className="relative flex items-center text-purple-700 group-hover:text-white transition-colors duration-300">
+              Sign In to Get Started
+              <motion.svg
+                className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </motion.svg>
+            </span>
+          </motion.button>
         </motion.div>
 
         {/* Device Mockups */}
@@ -234,6 +240,7 @@ export default function LandingPage() {
                 alt="NeX AI on Mobile"
                 width={400}
                 height={800}
+                priority
                 className="rounded-xl shadow-2xl object-cover w-full h-auto max-w-xs"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-purple-600/10 to-transparent rounded-xl"></div>
@@ -657,31 +664,34 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link href="/auth/signin">
-                <button className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 bg-white text-purple-700 hover:bg-gray-50 shadow-2xl hover:shadow-white/25">
-                  <span className="relative flex items-center">
-                    Sign In to Get Started
-                    <motion.svg
-                      className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                      />
-                    </motion.svg>
-                  </span>
-                </button>
-              </Link>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 bg-white text-purple-700 hover:bg-gray-50 shadow-2xl hover:shadow-white/25"
+              >
+                <span className="relative flex items-center">
+                  Sign In to Get Started
+                  <motion.svg
+                    className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
+                  </motion.svg>
+                </span>
+              </button>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
+      {/* Auth Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }
