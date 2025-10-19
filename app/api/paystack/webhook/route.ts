@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { type PlanType } from '@/lib/plans';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { forwardWithRetry } from '@/lib/forward';
 
 // Initialize Supabase client with service role for database operations
 const supabase = createClient(
@@ -34,8 +35,16 @@ export async function POST(req: NextRequest) {
     const event = JSON.parse(body);
     console.log(`📨 Paystack webhook received: ${event.event}`);
 
+    // Detect app source for routing
+    const appSource = event.data?.metadata?.app?.toLowerCase() || 'nexai';
+
     // Log transaction to appropriate Supabase table based on app source
     await logTransactionToSupabase(event);
+
+    // Forward to ElevenOne if applicable
+    if (appSource === 'elevenone' && process.env.ELEVENONE_WEBHOOK_URL) {
+      await forwardToElevenOne(body, event);
+    }
 
     switch (event.event) {
       case 'charge.success':
@@ -68,6 +77,86 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Webhook processing error:', error);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
+}
+
+/**
+ * Forwards webhook to ElevenOne endpoint and logs the result
+ */
+async function forwardToElevenOne(rawBody: string, event: any) {
+  const targetUrl = process.env.ELEVENONE_WEBHOOK_URL!;
+  const reference = event.data?.reference || 'unknown';
+
+  console.log(`🔄 Forwarding webhook to ElevenOne: ${targetUrl}`);
+
+  try {
+    const result = await forwardWithRetry({
+      url: targetUrl,
+      body: rawBody,
+    });
+
+    // Log forwarding result to Supabase
+    await logForwardingResult({
+      app: 'elevenone',
+      targetUrl,
+      ok: result.ok,
+      statusCode: result.status || null,
+      attemptCount: result.attempt || 3,
+      errorMessage: result.error || null,
+      reference,
+    });
+
+    if (result.ok) {
+      console.log(`✅ Successfully forwarded to ElevenOne (attempt ${result.attempt}, status ${result.status})`);
+    } else {
+      console.error(`❌ Failed to forward to ElevenOne: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('❌ Forwarding error:', error);
+    // Log the failure
+    await logForwardingResult({
+      app: 'elevenone',
+      targetUrl,
+      ok: false,
+      statusCode: null,
+      attemptCount: 3,
+      errorMessage: String(error),
+      reference,
+    });
+  }
+}
+
+/**
+ * Logs forwarding results to webhook_forward_logs table
+ */
+async function logForwardingResult(data: {
+  app: string;
+  targetUrl: string;
+  ok: boolean;
+  statusCode: number | null;
+  attemptCount: number;
+  errorMessage: string | null;
+  reference: string;
+}) {
+  try {
+    const { error } = await supabase
+      .from('webhook_forward_logs')
+      .insert({
+        app: data.app,
+        target_url: data.targetUrl,
+        ok: data.ok,
+        status_code: data.statusCode,
+        attempt_count: data.attemptCount,
+        error_message: data.errorMessage,
+        reference: data.reference,
+      });
+
+    if (error) {
+      console.error('❌ Failed to log forwarding result:', error);
+    }
+  } catch (error) {
+    console.error('Error in logForwardingResult:', error);
+    // Don't throw - we want webhook processing to continue even if logging fails
   }
 }
 
