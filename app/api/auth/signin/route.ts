@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
+import { signInSchema } from '@/lib/validations/auth';
 
 // Helper function to ensure user exists in Prisma database
 async function ensurePrismaUser(userId: string, email: string, name?: string) {
@@ -50,14 +51,24 @@ async function ensurePrismaUser(userId: string, email: string, name?: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
 
-    if (!email || !password) {
+    // Validate request body with Zod
+    const validation = signInSchema.safeParse(body);
+
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        {
+          error: 'Validation failed',
+          details: validation.error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
+          }))
+        },
         { status: 400 }
       );
     }
+
+    const { email, password } = validation.data;
 
     console.log('= Server-side signin attempt:', { email });
 

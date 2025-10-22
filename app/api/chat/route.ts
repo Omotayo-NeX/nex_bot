@@ -5,6 +5,7 @@ import { getKnowledgeContext, shouldUseKnowledge, formatKnowledgeSources, valida
 import { checkFeatureAccess, incrementUsage } from '../../../lib/usage-tracking';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '../../../lib/prisma';
+import { trackChatCost } from '../../../lib/openai-cost-tracker';
 
 // export const runtime = 'edge'; // Temporarily disabled for knowledge retrieval testing
 
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    console.log(`✅ [Chat API] ${requestId} User authenticated: ${user.id} (${user.email})`);
+    console.log(`✅ [Chat API] ${requestId} User authenticated`);
 
     // 2.5. ENSURE USER EXISTS IN PRISMA DATABASE
     try {
@@ -157,7 +158,7 @@ export async function POST(req: NextRequest) {
       console.log(`🔍 [Chat API] ${requestId} User lookup result:`, userRecord ? 'FOUND' : 'NOT FOUND');
 
       if (!userRecord) {
-        console.log(`🔧 [Chat API] ${requestId} Creating new user record in Prisma for: ${user.id}`);
+        console.log(`🔧 [Chat API] ${requestId} Creating new user record in Prisma`);
         await prisma.user.create({
           data: {
             id: user.id,
@@ -665,26 +666,23 @@ IMPORTANT:
           details: isDev ? { 
             status: response.status, 
             statusText: response.statusText,
-            openaiError: parsedError 
+            openaiError: parsedError
           } : undefined,
           requestId
-        }), { 
+        }), {
           status: response.status >= 500 ? 502 : response.status,
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      
+
       data = await response.json();
-      
-      if (isDev) {
-        console.log(`📥 [Chat API] ${requestId} OpenAI response:`, {
-          id: data.id,
-          model: data.model,
-          usage: data.usage,
-          finishReason: data.choices?.[0]?.finish_reason,
-          responseLength: data.choices?.[0]?.message?.content?.length || 0
-        });
-      }
+
+      console.log(`📥 [Chat API] ${requestId} OpenAI response received:`, {
+        model: data.model,
+        usage: data.usage,
+        finishReason: data.choices?.[0]?.finish_reason,
+        responseLength: data.choices?.[0]?.message?.content?.length || 0
+      });
       
     } catch (error: any) {
       console.error(`❌ [Chat API] ${requestId} OPENAI REQUEST ERROR:`, {
@@ -733,19 +731,41 @@ IMPORTANT:
       assistantMessage += formatKnowledgeSources(knowledgeSources);
     }
 
-    // 9. INCREMENT USAGE COUNTER
+    // 9. INCREMENT USAGE COUNTER AND TRACK COST
     try {
       await incrementUsage(user.id, 'chat', 1);
-      console.log(`✅ [Chat API] ${requestId} Usage incremented for user ${user.id}`);
+      console.log(`✅ [Chat API] ${requestId} Usage incremented`);
     } catch (error: any) {
       console.error(`❌ [Chat API] ${requestId} USAGE INCREMENT ERROR:`, {
         error: error.message,
-        stack: isDev ? error.stack : undefined,
-        userId: user.id
+        stack: isDev ? error.stack : undefined
       });
-      
+
       // Don't fail the request if usage increment fails
       console.log(`⚠️ [Chat API] ${requestId} Continuing despite usage increment failure`);
+    }
+
+    // Track OpenAI API cost
+    if (data.usage) {
+      try {
+        await trackChatCost({
+          userId: user.id,
+          model: data.model || selectedModel,
+          promptTokens: data.usage.prompt_tokens || 0,
+          completionTokens: data.usage.completion_tokens || 0,
+        });
+        console.log(`💰 [Chat API] ${requestId} Cost tracked:`, {
+          model: data.model,
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+        });
+      } catch (error: any) {
+        console.error(`❌ [Chat API] ${requestId} COST TRACKING ERROR:`, {
+          error: error.message,
+          stack: isDev ? error.stack : undefined
+        });
+        // Don't fail the request if cost tracking fails
+      }
     }
 
     // 10. SUCCESS RESPONSE

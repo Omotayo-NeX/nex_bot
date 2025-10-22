@@ -41,23 +41,23 @@ export default function LandingPage() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-blue-100 via-purple-50 to-transparent blur-3xl"
+          className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-nex-yellow/20 via-nex-yellow/5 to-transparent blur-3xl"
         />
-        
+
         {/* Bottom Arc */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-100 via-blue-50 to-transparent blur-3xl"
+          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-tr from-nex-navy-light/30 via-nex-navy/10 to-transparent blur-3xl"
         />
-        
+
         {/* Center Glow */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 0.6, scale: 1 }}
           transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-blue-50/30 via-purple-30/20 to-transparent blur-2xl"
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-nex-yellow/10 via-nex-navy/5 to-transparent blur-2xl"
         />
       </div>
 
@@ -120,7 +120,7 @@ export default function LandingPage() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 transition"
+                className="px-4 py-2 rounded-md bg-nex-navy text-white hover:bg-nex-navy-light transition"
               >
                 Sign Up
               </button>
@@ -131,12 +131,9 @@ export default function LandingPage() {
               >
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="relative px-6 py-3 text-sm font-semibold rounded-xl overflow-hidden group border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 transition-all duration-300"
+                  className="relative px-6 py-3 text-sm font-semibold rounded-xl bg-nex-yellow text-nex-navy hover:bg-nex-yellow-dark transition-all duration-300 shadow-lg hover:shadow-nex-yellow/30"
                 >
-                  <span className="absolute inset-0.5 bg-white rounded-lg group-hover:opacity-0 transition-opacity duration-300"></span>
-                  <span className="relative text-purple-700 group-hover:text-white transition-colors duration-300">
-                    Sign In →
-                  </span>
+                  Sign In →
                 </button>
               </motion.div>
             </div>
@@ -151,9 +148,9 @@ export default function LandingPage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         >
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-8 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-heading font-bold text-gray-900 mb-8 leading-tight">
             <span className="block">Smarter Conversations,</span>
-            <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-nex-navy via-nex-navy-light to-nex-yellow bg-clip-text text-transparent">
               Powered by NeX AI
             </span>
           </h1>
@@ -177,12 +174,9 @@ export default function LandingPage() {
             onClick={() => setShowAuthModal(true)}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
-            className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 border-2 border-transparent bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700"
+            className="relative px-12 py-6 text-xl font-semibold rounded-2xl bg-nex-yellow text-nex-navy hover:bg-nex-yellow-dark transition-all duration-300 shadow-2xl hover:shadow-nex-yellow/50"
           >
-            {/* White background */}
-            <span className="absolute inset-0.5 bg-white rounded-xl group-hover:opacity-0 transition-opacity duration-300"></span>
-            {/* Content */}
-            <span className="relative flex items-center text-purple-700 group-hover:text-white transition-colors duration-300">
+            <span className="flex items-center">
               Sign In to Get Started
               <motion.svg
                 className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-200"
@@ -222,6 +216,7 @@ export default function LandingPage() {
                 alt="NeX AI on Desktop"
                 width={1200}
                 height={800}
+                priority
                 className="rounded-xl shadow-2xl object-cover w-full h-auto"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent rounded-xl"></div>
@@ -309,6 +304,7 @@ export default function LandingPage() {
                   alt="AI Voice Overs"
                   width={500}
                   height={400}
+                  loading="lazy"
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
@@ -332,6 +328,7 @@ export default function LandingPage() {
                   alt="AI Picture Generation"
                   width={500}
                   height={400}
+                  loading="lazy"
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
@@ -385,6 +382,7 @@ export default function LandingPage() {
                   alt="Africa Startups"
                   width={500}
                   height={400}
+                  loading="lazy"
                   className="object-cover rounded-xl shadow-lg w-full h-auto"
                 />
               </div>
@@ -420,7 +418,7 @@ export default function LandingPage() {
               viewport={{ once: true, margin: "-50px" }}
               className="text-center"
             >
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -439,7 +437,7 @@ export default function LandingPage() {
               viewport={{ once: true, margin: "-50px" }}
               className="text-center"
             >
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
@@ -458,7 +456,7 @@ export default function LandingPage() {
               viewport={{ once: true, margin: "-50px" }}
               className="text-center"
             >
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-nex-yellow to-nex-navy-light rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -500,7 +498,7 @@ export default function LandingPage() {
               whileHover={{ y: -10, scale: 1.05 }}
               className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
@@ -520,7 +518,7 @@ export default function LandingPage() {
               whileHover={{ y: -10, scale: 1.05 }}
               className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -540,7 +538,7 @@ export default function LandingPage() {
               whileHover={{ y: -10, scale: 1.05 }}
               className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-nex-yellow to-nex-navy-light rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -602,7 +600,7 @@ export default function LandingPage() {
               className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl"
             >
               <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-full flex items-center justify-center mr-4">
                   <span className="text-white font-bold text-lg">AS</span>
                 </div>
                 <div>
@@ -624,7 +622,7 @@ export default function LandingPage() {
               className="bg-gradient-to-br from-purple-50 to-indigo-50 p-8 rounded-2xl"
             >
               <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-nex-navy to-nex-yellow rounded-full flex items-center justify-center mr-4">
                   <span className="text-white font-bold text-lg">KM</span>
                 </div>
                 <div>
@@ -641,7 +639,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-24 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 overflow-hidden">
+      <section className="relative z-10 py-24 bg-gradient-to-r from-nex-navy via-nex-navy-light to-nex-navy overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
           <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 rounded-full blur-2xl"></div>
@@ -666,7 +664,7 @@ export default function LandingPage() {
             >
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 bg-white text-purple-700 hover:bg-gray-50 shadow-2xl hover:shadow-white/25"
+                className="relative px-12 py-6 text-xl font-semibold rounded-2xl overflow-hidden group transition-all duration-300 bg-nex-yellow text-nex-navy hover:bg-nex-yellow-dark shadow-2xl hover:shadow-nex-yellow/30"
               >
                 <span className="relative flex items-center">
                   Sign In to Get Started

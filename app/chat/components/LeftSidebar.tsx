@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette } from 'lucide-react';
+import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
@@ -38,6 +38,8 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
   
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredConversations, setFilteredConversations] = useState<ConversationData[]>([]);
 
   // Fetch user data and conversations
   useEffect(() => {
@@ -168,6 +170,20 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
     }
   };
 
+  // Filter conversations based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredConversations(conversations);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = conversations.filter(conv =>
+        conv.title.toLowerCase().includes(query) ||
+        conv.preview.toLowerCase().includes(query)
+      );
+      setFilteredConversations(filtered);
+    }
+  }, [searchQuery, conversations]);
+
   // TODO: Email verification function can be re-enabled later when billing or premium features are introduced
 
   const getPlanDisplayName = (plan: string) => {
@@ -194,17 +210,29 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       className="w-[280px] bg-[#111827] border-r border-gray-700/50 flex flex-col h-full"
     >
       {/* New Chat Button */}
-      <div className="p-4">
+      <div className="p-4 space-y-3">
         <button
           onClick={() => {
             onNewChat();
             onCloseSidebar?.();
           }}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-medium transition-all hover:scale-105 transform"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-nex-navy to-nex-navy-light hover:from-nex-navy-light hover:to-nex-navy text-white rounded-xl font-medium transition-all hover:scale-105 transform"
         >
           <Plus className="w-4 h-4" />
           <span>New Chat</span>
         </button>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white placeholder-gray-400 rounded-lg border border-gray-700 focus:border-nex-yellow focus:outline-none focus:ring-2 focus:ring-nex-yellow/20 transition-all"
+          />
+        </div>
       </div>
 
       {/* AI Tools Section */}
@@ -239,14 +267,14 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
       </div>
 
       {/* Pinned Chats */}
-      {conversations.filter(conv => conv.isPinned).length > 0 && (
+      {filteredConversations.filter(conv => conv.isPinned).length > 0 && (
         <div className="px-4 pb-4">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
             <Pin className="w-3 h-3 mr-1" />
             Pinned Chats
           </h3>
           <div className="space-y-1">
-            {conversations.filter(conv => conv.isPinned).map((chat) => (
+            {filteredConversations.filter(conv => conv.isPinned).map((chat) => (
               <button
                 key={chat.id}
                 onClick={() => handleConversationClick(chat.id)}
@@ -271,8 +299,8 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
             <div className="flex items-center justify-center py-4">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
             </div>
-          ) : conversations.filter(conv => !conv.isPinned).length > 0 ? (
-            conversations.filter(conv => !conv.isPinned).map((chat) => (
+          ) : filteredConversations.filter(conv => !conv.isPinned).length > 0 ? (
+            filteredConversations.filter(conv => !conv.isPinned).map((chat) => (
               <button
                 key={chat.id}
                 onClick={() => handleConversationClick(chat.id)}
@@ -291,8 +319,8 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
             ))
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">No conversations yet</p>
-              <p className="text-xs mt-1">Start a new chat to see your history here</p>
+              <p className="text-sm">{searchQuery ? 'No conversations found' : 'No conversations yet'}</p>
+              <p className="text-xs mt-1">{searchQuery ? 'Try a different search term' : 'Start a new chat to see your history here'}</p>
             </div>
           )}
         </div>

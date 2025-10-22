@@ -7,8 +7,18 @@ import { Menu, X } from 'lucide-react';
 import { useSettings } from '@/lib/contexts/SettingsContext';
 import LeftSidebar from './components/LeftSidebar';
 import ChatArea from './components/ChatArea';
-import PictureGeneratorModal from './components/PictureGeneratorModal';
-import VoiceoverGeneratorModal from './components/VoiceoverGeneratorModal';
+import dynamic from 'next/dynamic';
+
+// Lazy load heavy modal components
+const PictureGeneratorModal = dynamic(() => import('./components/PictureGeneratorModal'), {
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center"><div className="text-white">Loading...</div></div>,
+  ssr: false
+});
+
+const VoiceoverGeneratorModal = dynamic(() => import('./components/VoiceoverGeneratorModal'), {
+  loading: () => <div className="fixed inset-0 bg-black/50 flex items-center justify-center"><div className="text-white">Loading...</div></div>,
+  ssr: false
+});
 
 interface Message {
   role: 'user' | 'assistant';

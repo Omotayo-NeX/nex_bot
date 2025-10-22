@@ -129,3 +129,18 @@ model Message {
 
   @@map("Message")
 }
+
+model OpenAICost {
+  id              String   @id @default(uuid()) @map("id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  model           String   @map("model") // e.g., gpt-4o, gpt-4o-mini, dall-e-3
+  promptTokens    Int      @default(0) @map("prompt_tokens")
+  completionTokens Int     @default(0) @map("completion_tokens")
+  totalTokens     Int      @default(0) @map("total_tokens")
+  estimatedCost   Float    @map("estimated_cost") // in USD
+  feature         String   @map("feature") // chat, image, voice
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("OpenAICost")
+}

@@ -4,13 +4,6 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
 import { prisma } from "./prisma";
-// import { validateEnvironmentVariables } from "./env-validation";
-
-// Validate environment variables before creating auth options
-// const envValidation = validateEnvironmentVariables();
-// if (!envValidation.isValid) {
-//   console.error('🚨 Auth Configuration - Environment validation failed:', envValidation.errors);
-// }
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),

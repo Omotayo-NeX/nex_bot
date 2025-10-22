@@ -5,6 +5,28 @@ import { PLANS, type PlanType } from '@/lib/plans';
 
 export async function POST(req: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error('❌ PAYSTACK_SECRET_KEY is not configured');
+      return NextResponse.json(
+        { error: 'Payment service not configured - missing secret key' },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.NEXT_PUBLIC_SITE_URL) {
+      console.error('❌ NEXT_PUBLIC_SITE_URL is not configured');
+      return NextResponse.json(
+        { error: 'Site URL not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Log key format for debugging (first/last chars only)
+    const keyPrefix = process.env.PAYSTACK_SECRET_KEY.substring(0, 8);
+    const keyLength = process.env.PAYSTACK_SECRET_KEY.length;
+    console.log('🔑 Paystack key check:', { keyPrefix, keyLength });
+
     // Authenticate with Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -67,6 +89,13 @@ export async function POST(req: NextRequest) {
 
     const selectedPlan = PLANS[planType];
 
+    console.log(`💳 Initializing Paystack payment:`, {
+      email: user.email,
+      plan: planType,
+      amount: selectedPlan.paystack_amount,
+      amountInNaira: selectedPlan.paystack_amount / 100
+    });
+
     // Initialize Paystack transaction
     const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -91,9 +120,28 @@ export async function POST(req: NextRequest) {
 
     if (!paystackResponse.ok) {
       const errorData = await paystackResponse.json();
-      console.error('Paystack initialization failed:', errorData);
+      console.error('❌ Paystack initialization failed:', {
+        status: paystackResponse.status,
+        statusText: paystackResponse.statusText,
+        error: errorData
+      });
+
+      // Provide more specific error messages
+      if (errorData.message?.includes('Invalid key')) {
+        return NextResponse.json(
+          {
+            error: 'Payment configuration error',
+            details: 'Invalid Paystack API key. Please verify your Paystack credentials in the environment variables.'
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Payment initialization failed' },
+        {
+          error: 'Payment initialization failed',
+          details: errorData.message || 'Unknown error from payment provider'
+        },
         { status: 500 }
       );
     }

@@ -10,8 +10,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist)'],
-        mono: ['var(--font-geist-mono)'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
       },
       screens: {
         'toast-mobile': '600px',
@@ -22,6 +23,14 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        // NeX AI Brand Colors
+        'nex-navy': '#0A0F24',
+        'nex-yellow': '#FEE440',
+        'nex-navy-light': '#1a2332',
+        'nex-navy-dark': '#050812',
+        'nex-yellow-light': '#fff59d',
+        'nex-yellow-dark': '#f9d71c',
+
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

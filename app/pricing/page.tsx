@@ -72,7 +72,7 @@ export default function PricingPage() {
                 className="object-contain"
               />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold bg-gradient-to-r from-nex-yellow to-nex-yellow-dark bg-clip-text text-transparent">
               NeX AI
             </span>
           </Link>
@@ -96,9 +96,9 @@ export default function PricingPage() {
 
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6">
             Choose Your{' '}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-nex-yellow via-nex-yellow-dark to-nex-yellow-light bg-clip-text text-transparent">
               Perfect Plan
             </span>
           </h1>
@@ -150,10 +150,10 @@ export default function PricingPage() {
                   disabled={loading === plan.id}
                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                     plan.popular
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-purple-500/25'
+                      ? 'bg-nex-yellow text-nex-navy hover:bg-nex-yellow-dark shadow-lg hover:shadow-nex-yellow/30'
                       : plan.id === 'free'
                       ? 'bg-gray-700/50 hover:bg-gray-700 text-white'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/25'
+                      : 'bg-nex-navy text-white hover:bg-nex-navy-light shadow-lg hover:shadow-nex-navy/25'
                   }`}
                 >
                   {loading === plan.id ? 'Processing...' : 
