@@ -146,15 +146,27 @@ export default function UploadReceiptModal({
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use back camera on mobile
+        video: {
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
       });
       setStream(mediaStream);
       setShowCamera(true);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      // Wait for next tick to ensure video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          // Explicitly play the video
+          videoRef.current.play().catch(err => {
+            console.error('Error playing video:', err);
+          });
+        }
+      }, 100);
     } catch (err: any) {
+      console.error('Camera error:', err);
       setError('Camera access denied. Please allow camera permissions or upload a file instead.');
     }
   };

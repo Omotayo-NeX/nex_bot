@@ -1,11 +1,8 @@
 {
   "functions": {
-    "app/api/**/*.ts": {
+    "app/api/expensa/upload/route.ts": {
       "maxDuration": 60,
       "memory": 1024
     }
-  },
-  "limits": {
-    "maxRequestBodySize": 10485760
   }
 }

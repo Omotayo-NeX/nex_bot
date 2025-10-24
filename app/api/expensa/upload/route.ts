@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { extractReceiptData } from '@/lib/expensa/ai-extraction';
 
-// Increase body size limit to 10MB
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
+// Configure route for larger uploads
+export const maxDuration = 60; // 60 seconds timeout
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
