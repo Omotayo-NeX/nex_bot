@@ -1,0 +1,23 @@
+DROP TABLE IF EXISTS "OrganizationProfile" CASCADE;
+
+CREATE TABLE "OrganizationProfile" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "organization_name" TEXT NOT NULL,
+    "website" TEXT,
+    "phone_number" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "representative_name" TEXT NOT NULL,
+    "business_email" TEXT NOT NULL,
+    "monthly_budget" DECIMAL(12, 2) NOT NULL DEFAULT 100000,
+    "currency" TEXT NOT NULL DEFAULT 'NGN',
+    "onboarding_completed" BOOLEAN NOT NULL DEFAULT FALSE,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "OrganizationProfile_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "OrganizationProfile_user_id_key"
+ON "OrganizationProfile"("user_id");
+
+SELECT table_name FROM information_schema.tables WHERE table_name = 'OrganizationProfile';

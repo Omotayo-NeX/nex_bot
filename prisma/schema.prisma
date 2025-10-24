@@ -41,33 +41,36 @@ model Session {
 }
 
 model User {
-  id                        String         @id @default(uuid()) @map("id") @db.Uuid
-  name                      String?        @map("name")
-  email                     String?        @unique @map("email")
-  password                  String?        @map("password") // For credentials login
-  createdAt                 DateTime       @default(now()) @map("created_at")
-  emailVerified             DateTime?      @map("email_verified")
-  image                     String?        @map("image")
+  id                        String                @id @default(uuid()) @map("id") @db.Uuid
+  name                      String?               @map("name")
+  email                     String?               @unique @map("email")
+  password                  String?               @map("password") // For credentials login
+  createdAt                 DateTime              @default(now()) @map("created_at")
+  emailVerified             DateTime?             @map("email_verified")
+  image                     String?               @map("image")
   // Subscription fields
-  plan                      String         @default("free") @map("plan") // free, pro, enterprise
-  paystackCustomerCode      String?        @map("paystack_customer_code") // from Paystack API
-  subscriptionStatus        String?        @map("subscription_status") // trialing, active, canceled
-  chat_used_today           Int            @default(0) @map("chat_used_today")
-  videos_generated_this_week Int           @default(0) @map("videos_generated_this_week")
-  voice_minutes_this_week   Int            @default(0) @map("voice_minutes_this_week")
-  images_generated_this_week Int           @default(0) @map("images_generated_this_week")
-  plan_expires_at           DateTime?      @map("plan_expires_at")
-  paystack_customer_id      String?        @map("paystack_customer_id")
-  last_reset_date           DateTime       @default(now()) @map("last_reset_date")
+  plan                      String                @default("free") @map("plan") // free, pro, enterprise
+  paystackCustomerCode      String?               @map("paystack_customer_code") // from Paystack API
+  subscriptionStatus        String?               @map("subscription_status") // trialing, active, canceled
+  chat_used_today           Int                   @default(0) @map("chat_used_today")
+  videos_generated_this_week Int                  @default(0) @map("videos_generated_this_week")
+  voice_minutes_this_week   Int                   @default(0) @map("voice_minutes_this_week")
+  images_generated_this_week Int                  @default(0) @map("images_generated_this_week")
+  plan_expires_at           DateTime?             @map("plan_expires_at")
+  paystack_customer_id      String?               @map("paystack_customer_id")
+  last_reset_date           DateTime              @default(now()) @map("last_reset_date")
   // User preferences
-  preferred_model           String         @default("gpt-4o-mini") @map("preferred_model")
-  preferred_temperature     Float          @default(0.7) @map("preferred_temperature")
+  preferred_model           String                @default("gpt-4o-mini") @map("preferred_model")
+  preferred_temperature     Float                 @default(0.7) @map("preferred_temperature")
   accounts                  Account[]
   sessions                  Session[]
   voiceRequests             VoiceRequest[]
   usageStats                UsageStats[]
   conversations             Conversation[]
-  updatedAt                 DateTime       @default(now()) @updatedAt @map("updated_at")
+  expenses                  Expense[]
+  fieldLinks                FieldLink[]           @relation("BusinessFieldLinks")
+  notifications             ExpenseNotification[] @relation("BusinessNotifications")
+  updatedAt                 DateTime              @default(now()) @updatedAt @map("updated_at")
 
   @@map("User")
 }
@@ -143,4 +146,167 @@ model OpenAICost {
 
   @@index([userId, createdAt])
   @@map("OpenAICost")
+}
+
+model Expense {
+  id                String              @id @default(uuid()) @map("id") @db.Uuid
+  userId            String              @map("user_id") @db.Uuid
+  teamId            String?             @map("team_id") @db.Uuid
+  projectName       String?             @map("project_name")
+  category          String              @map("category") // Transport, Food, Equipment, etc.
+  amount            Decimal             @map("amount") @db.Decimal(12, 2)
+  currency          String              @default("NGN") @map("currency")
+  description       String?             @map("description") @db.Text
+  receiptUrl        String?             @map("receipt_url")
+  merchantName      String?             @map("merchant_name")
+  expenseDate       DateTime            @map("expense_date")
+  status            String              @default("pending") @map("status") // pending, approved, rejected, reimbursed
+  approvedBy        String?             @map("approved_by") @db.Uuid
+  approvedAt        DateTime?           @map("approved_at")
+  // New fields for field worker submissions
+  fieldLinkId       String?             @map("field_link_id") @db.Uuid
+  workerName        String?             @map("worker_name")
+  location          String?             @map("location")
+  aiScanned         Boolean             @default(false) @map("ai_scanned")
+  aiConfidence      Decimal?            @map("ai_confidence") @db.Decimal(5, 2)
+  detectedCurrency  String?             @map("detected_currency")
+  receiptDate       DateTime?           @map("receipt_date")
+  rejectionReason   String?             @map("rejection_reason") @db.Text
+  reviewedBy        String?             @map("reviewed_by") @db.Uuid
+  reviewedAt        DateTime?           @map("reviewed_at")
+  submissionMethod  String              @default("admin_entry") @map("submission_method") // admin_entry, field_worker, api
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fieldLink         FieldLink?          @relation(fields: [fieldLinkId], references: [id], onDelete: SetNull)
+  reimbursement     Reimbursement?
+  aiLogs            AiReceiptLog[]
+  notifications     ExpenseNotification[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([fieldLinkId])
+  @@map("Expense")
+}
+
+model Reimbursement {
+  id              String    @id @default(uuid()) @map("id") @db.Uuid
+  expenseId       String    @unique @map("expense_id") @db.Uuid
+  amount          Decimal   @map("amount") @db.Decimal(12, 2)
+  recipientEmail  String?   @map("recipient_email")
+  recipientBank   String?   @map("recipient_bank")
+  accountNumber   String?   @map("account_number")
+  paystackRef     String?   @map("paystack_ref")
+  status          String    @default("pending") @map("status") // pending, processing, completed, failed
+  paidAt          DateTime? @map("paid_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  expense         Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@map("Reimbursement")
+}
+
+model Budget {
+  id            String   @id @default(uuid()) @map("id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  teamId        String?  @map("team_id") @db.Uuid
+  projectName   String?  @map("project_name")
+  category      String?  @map("category")
+  limitAmount   Decimal  @map("limit_amount") @db.Decimal(12, 2)
+  spentAmount   Decimal  @default(0) @map("spent_amount") @db.Decimal(12, 2)
+  period        String   @default("monthly") @map("period") // monthly, quarterly, yearly
+  startDate     DateTime @map("start_date")
+  endDate       DateTime @map("end_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("Budget")
+}
+
+model OrganizationProfile {
+  id                    String   @id @default(uuid()) @map("id") @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  organizationName      String   @map("organization_name")
+  website               String?  @map("website")
+  phoneNumber           String   @map("phone_number")
+  address               String   @map("address") @db.Text
+  representativeName    String   @map("representative_name")
+  businessEmail         String   @map("business_email")
+  monthlyBudget         Decimal  @default(100000) @map("monthly_budget") @db.Decimal(12, 2)
+  currency              String   @default("NGN") @map("currency")
+  onboardingCompleted   Boolean  @default(false) @map("onboarding_completed")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("OrganizationProfile")
+}
+
+model FieldLink {
+  id              String    @id @default(uuid()) @map("id") @db.Uuid
+  businessId      String    @map("business_id") @db.Uuid
+  workerName      String    @map("worker_name")
+  workerEmail     String?   @map("worker_email")
+  workerPhone     String?   @map("worker_phone")
+  projectName     String?   @map("project_name")
+  inviteToken     String    @unique @map("invite_token")
+  expiresAt       DateTime  @map("expires_at")
+  allowedActions  String[]  @default(["submit_expense"]) @map("allowed_actions")
+  isActive        Boolean   @default(true) @map("is_active")
+  maxUses         Int?      @map("max_uses")
+  currentUses     Int       @default(0) @map("current_uses")
+  metadata        Json      @default("{}") @map("metadata")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  business        User      @relation("BusinessFieldLinks", fields: [businessId], references: [id], onDelete: Cascade)
+  expenses        Expense[]
+
+  @@index([businessId])
+  @@index([inviteToken])
+  @@index([isActive, expiresAt])
+  @@map("FieldLink")
+}
+
+model AiReceiptLog {
+  id                String    @id @default(uuid()) @map("id") @db.Uuid
+  expenseId         String    @map("expense_id") @db.Uuid
+  modelUsed         String    @default("gpt-4o-mini") @map("model_used")
+  promptTokens      Int       @default(0) @map("prompt_tokens")
+  completionTokens  Int       @default(0) @map("completion_tokens")
+  totalTokens       Int       @default(0) @map("total_tokens")
+  costUsd           Decimal   @default(0) @map("cost_usd") @db.Decimal(10, 6)
+  rawResponse       Json?     @map("raw_response")
+  confidenceScore   Decimal?  @map("confidence_score") @db.Decimal(5, 2)
+  extractionStatus  String    @default("success") @map("extraction_status")
+  errorMessage      String?   @map("error_message") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  expense           Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@map("AiReceiptLog")
+}
+
+model ExpenseNotification {
+  id                String    @id @default(uuid()) @map("id") @db.Uuid
+  businessId        String    @map("business_id") @db.Uuid
+  expenseId         String    @map("expense_id") @db.Uuid
+  notificationType  String    @map("notification_type") // new_submission, status_change, approval_required
+  title             String    @map("title")
+  message           String    @map("message") @db.Text
+  isRead            Boolean   @default(false) @map("is_read")
+  sentViaEmail      Boolean   @default(false) @map("sent_via_email")
+  emailSentAt       DateTime? @map("email_sent_at")
+  metadata          Json      @default("{}") @map("metadata")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  business          User      @relation("BusinessNotifications", fields: [businessId], references: [id], onDelete: Cascade)
+  expense           Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, isRead])
+  @@index([businessId])
+  @@map("ExpenseNotification")
 }

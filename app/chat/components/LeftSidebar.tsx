@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette, Search } from 'lucide-react';
+import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette, Search, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface LeftSidebarProps {
   onNewChat: () => void;
@@ -31,6 +32,7 @@ interface ConversationData {
 
 export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenVoiceGenerator, onCloseSidebar, onLoadConversation }: LeftSidebarProps) {
   const { user, session, signOut, loading } = useAuth();
+  const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   // const [sendingVerification, setSendingVerification] = useState(false); // TODO: Re-enable when email verification is needed
@@ -262,6 +264,19 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
           >
             <Mic className="w-4 h-4" />
             <span className="text-sm">Voice Generator</span>
+          </button>
+
+          {/* Expensa - Expense Tracker */}
+          <button
+            onClick={() => {
+              router.push('/expensa');
+              onCloseSidebar?.();
+            }}
+            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors relative"
+          >
+            <Wallet className="w-4 h-4" />
+            <span className="text-sm">Expensa</span>
+            <span className="ml-auto bg-nex-yellow text-xs px-2 py-1 rounded text-nex-navy font-semibold">New</span>
           </button>
         </div>
       </div>

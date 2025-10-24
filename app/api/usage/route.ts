@@ -41,14 +41,20 @@ export async function GET(req: NextRequest) {
     const userId = user.id;
 
     // Get user info for plan details, create if doesn't exist
-    let userRecord = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        plan: true,
-        subscriptionStatus: true,
-        plan_expires_at: true
-      }
-    });
+    let userRecord;
+    try {
+      userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          plan: true,
+          subscriptionStatus: true,
+          plan_expires_at: true
+        }
+      });
+    } catch (dbError: any) {
+      console.error('Database query error (user):', dbError.message);
+      userRecord = null;
+    }
 
     if (!userRecord) {
       // Create user record in Prisma if it doesn't exist
@@ -81,14 +87,27 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user usage data directly from User table (simpler approach)
-    const userUsage = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        chat_used_today: true,
-        videos_generated_this_week: true,
-        voice_minutes_this_week: true
-      }
-    });
+    let userUsage;
+    try {
+      userUsage = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          chat_used_today: true,
+          videos_generated_this_week: true,
+          voice_minutes_this_week: true,
+          images_generated_this_week: true
+        }
+      });
+    } catch (dbError: any) {
+      console.error('Database query error (usage):', dbError.message);
+      // If database query fails, use defaults
+      userUsage = {
+        chat_used_today: 0,
+        videos_generated_this_week: 0,
+        voice_minutes_this_week: 0,
+        images_generated_this_week: 0
+      };
+    }
 
     // For now, we'll use the User table data since it's working
     // Future enhancement: migrate to UsageStats table for detailed tracking

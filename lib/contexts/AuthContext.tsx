@@ -72,14 +72,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state changed:', event, session?.user?.email, 'pathname:', pathname);
+
+        // Handle token refresh events
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed successfully');
+        }
+
+        // Note: TOKEN_REFRESH_FAILED is not a standard Supabase auth event
+        // Session will be null automatically on auth errors
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Handle sign in - redirect to chat if not already there
+        // Handle sign in - redirect to chat only from auth pages
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('✅ Sign in detected, pathname:', pathname);
-          if (pathname === '/' || pathname.startsWith('/auth')) {
+          // Only redirect from auth pages or home page, not from other app pages
+          if (pathname === '/' || pathname.startsWith('/auth/')) {
             console.log('🚀 Redirecting to chat after sign in from:', pathname);
             router.push('/chat');
           } else {

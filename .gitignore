@@ -63,3 +63,23 @@ fix_usage_stats.sql
 fix_user_table.sql
 run_database_fix.sh
 scripts/fix_*.js
+
+# Security: Email and SMTP configuration (SENSITIVE)
+*EMAIL*.md
+*SMTP*.md
+*smtp*.js
+*email-config*.js
+*mail-config*.js
+EMAIL_TEST_RESULTS.md
+SUPABASE_EMAIL_SETUP.md
+EMAIL_AUDIT_REPORT.md
+EMAIL_AUDIT_SUMMARY.txt
+scripts/test-smtp*.js
+scripts/test-email*.js
+scripts/*-credentials*.js
+
+# Security: Audit and incident reports
+*AUDIT*.md
+*SECURITY*.md
+*INCIDENT*.md
+SECURITY_INCIDENT_RESPONSE.md
