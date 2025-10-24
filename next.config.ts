@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
       ? "https://ai.nexconsultingltd.com"
       : "http://localhost:3000",
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 export default nextConfig;

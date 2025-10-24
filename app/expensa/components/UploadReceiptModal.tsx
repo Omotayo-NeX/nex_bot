@@ -54,9 +54,12 @@ export default function UploadReceiptModal({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+    // Validate file size (max 8MB to match server limit)
+    const maxSizeMB = 8;
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (selectedFile.size > maxSizeBytes) {
+      const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+      setError(`File size (${fileSizeMB}MB) exceeds the maximum allowed size of ${maxSizeMB}MB. Please compress your image or use a smaller file.`);
       return;
     }
 
@@ -97,8 +100,19 @@ export default function UploadReceiptModal({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to extract receipt data');
+        let errorMessage = 'Failed to extract receipt data';
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON (e.g., 413 from server), use status text
+          if (response.status === 413) {
+            errorMessage = 'Image file is too large. Please use a smaller image (max 8MB) or compress it.';
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

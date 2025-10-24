@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { extractReceiptData } from '@/lib/expensa/ai-extraction';
 
+// Increase body size limit to 10MB
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export async function POST(req: NextRequest) {
   try {
     // Check for authentication (optional for field worker uploads)
@@ -47,9 +56,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File size must be less than 5MB' }, { status: 400 });
+    // Validate file size (8MB max to account for base64 encoding overhead)
+    if (file.size > 8 * 1024 * 1024) {
+      return NextResponse.json({
+        error: 'File size must be less than 8MB. Please compress your image and try again.'
+      }, { status: 413 });
     }
 
     // Convert file to base64 for OpenAI
@@ -105,6 +116,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('POST /api/expensa/upload error:', error);
+
+    // Handle payload too large errors
+    if (error.message?.includes('too large') || error.code === 'ERR_HTTP_CONTENT_LENGTH_MISMATCH') {
+      return NextResponse.json(
+        { error: 'File is too large. Please use an image smaller than 8MB.' },
+        { status: 413 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to process receipt', details: error.message },
       { status: 500 }
