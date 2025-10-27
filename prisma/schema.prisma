@@ -70,6 +70,7 @@ model User {
   expenses                  Expense[]
   fieldLinks                FieldLink[]           @relation("BusinessFieldLinks")
   notifications             ExpenseNotification[] @relation("BusinessNotifications")
+  incomes                   Income[]
   updatedAt                 DateTime              @default(now()) @updatedAt @map("updated_at")
 
   @@map("User")
@@ -309,4 +310,28 @@ model ExpenseNotification {
   @@index([businessId, isRead])
   @@index([businessId])
   @@map("ExpenseNotification")
+}
+
+model Income {
+  id              String    @id @default(uuid()) @map("id") @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  source          String    @map("source") // Salary, Client Payment, Investment, etc.
+  category        String    @map("category") // Monthly Salary, Project Payment, Bonus, etc.
+  amount          Decimal   @map("amount") @db.Decimal(12, 2)
+  currency        String    @default("NGN") @map("currency")
+  description     String?   @map("description") @db.Text
+  receiptUrl      String?   @map("receipt_url")
+  incomeDate      DateTime  @map("income_date")
+  status          String    @default("received") @map("status") // pending, received, cancelled
+  projectName     String?   @map("project_name")
+  clientName      String?   @map("client_name")
+  invoiceNumber   String?   @map("invoice_number")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("Income")
 }

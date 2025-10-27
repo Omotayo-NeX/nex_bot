@@ -19,7 +19,11 @@ interface OrganizationProfile {
   updatedAt: string;
 }
 
-export default function ProfilePage() {
+interface ProfilePageProps {
+  onRequestOnboarding?: () => void;
+}
+
+export default function ProfilePage({ onRequestOnboarding }: ProfilePageProps) {
   const { session } = useAuth();
   const [profile, setProfile] = useState<OrganizationProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,8 +154,17 @@ export default function ProfilePage() {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-12 text-center">
         <Building2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">No profile found</h3>
-        <p className="text-gray-500">Please complete the onboarding process first</p>
+        <h3 className="text-xl font-semibold text-gray-300 mb-2">No Organization Profile</h3>
+        <p className="text-gray-500 mb-6">You haven't set up your organization profile yet</p>
+        {onRequestOnboarding && (
+          <button
+            onClick={onRequestOnboarding}
+            className="px-6 py-3 bg-nex-yellow hover:bg-nex-yellow-dark text-nex-navy font-semibold rounded-lg transition-colors inline-flex items-center space-x-2"
+          >
+            <Building2 className="w-5 h-5" />
+            <span>Set Up Organization Profile</span>
+          </button>
+        )}
       </div>
     );
   }

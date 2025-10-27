@@ -3,7 +3,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Upload, Filter, TrendingUp, ArrowLeft, UserCircle, Link2 } from 'lucide-react';
+import { Plus, Upload, Filter, TrendingUp, ArrowLeft, UserCircle, Link2, DollarSign, CreditCard } from 'lucide-react';
 import SummaryCards from './components/SummaryCards';
 import ExpenseTable from './components/ExpenseTable';
 import AddExpenseModal, { ExpenseFormData } from './components/AddExpenseModal';
@@ -11,6 +11,8 @@ import UploadReceiptModal from './components/UploadReceiptModal';
 import OnboardingModal from './components/OnboardingModal';
 import ProfilePage from './components/ProfilePage';
 import PendingExpensesModal from './analytics/components/PendingExpensesModal';
+import AddIncomeModal from './components/AddIncomeModal';
+import IncomeList from './components/IncomeList';
 import { toast } from 'sonner';
 
 interface Expense {
@@ -42,6 +44,9 @@ export default function ExpensaPage() {
   const [extractedData, setExtractedData] = useState<ExpenseFormData | null>(null);
   const [monthlyBudget, setMonthlyBudget] = useState<number>(100000);
   const [currency, setCurrency] = useState<string>('NGN');
+  const [activeTab, setActiveTab] = useState<'expenses' | 'income'>('expenses');
+  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
+  const [incomeRefreshTrigger, setIncomeRefreshTrigger] = useState(0);
 
   const hasFetchedRef = useRef(false);
 
@@ -75,12 +80,18 @@ export default function ExpensaPage() {
         console.log('Onboarding check result:', data);
 
         if (data.needsOnboarding) {
-          setNeedsOnboarding(true);
-          setShowOnboarding(true);
+          // Only show onboarding if not already shown/completed in this session
+          const onboardingCompleted = localStorage.getItem('expensa_onboarding_completed');
+          if (!onboardingCompleted) {
+            setNeedsOnboarding(true);
+            setShowOnboarding(true);
+          }
         } else if (data.profile) {
           // Profile exists, don't show onboarding
           setNeedsOnboarding(false);
           setShowOnboarding(false);
+          // Mark as completed in localStorage
+          localStorage.setItem('expensa_onboarding_completed', 'true');
           // Set budget and currency from profile
           setMonthlyBudget(parseFloat(data.profile.monthlyBudget) || 100000);
           setCurrency(data.profile.currency || 'NGN');
@@ -225,6 +236,8 @@ export default function ExpensaPage() {
     console.log('Onboarding completed, hiding modal');
     setShowOnboarding(false);
     setNeedsOnboarding(false);
+    // Mark as completed in localStorage
+    localStorage.setItem('expensa_onboarding_completed', 'true');
     // Refresh the page to load the expense data properly
     window.location.reload();
   };
@@ -346,43 +359,97 @@ export default function ExpensaPage() {
 
         {/* Profile Section */}
         {showProfile ? (
-          <ProfilePage />
+          <ProfilePage
+            onRequestOnboarding={() => {
+              setShowOnboarding(true);
+              setShowProfile(false); // Optionally close profile view when opening onboarding
+            }}
+          />
         ) : (
           <>
-            {/* Summary Cards */}
-            <SummaryCards
-              totalExpenses={totalExpenses}
-              pendingApproval={pendingApproval}
-              approvedThisMonth={approvedThisMonth}
-              budgetRemaining={budgetRemaining}
-              currency={currency}
-              onPendingClick={() => setShowPendingModal(true)}
-            />
-
-            {/* Expense Table */}
-            <div className="mb-8">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h2 className="text-xl md:text-2xl font-bold text-white">All Expenses</h2>
-            <div className="flex items-center space-x-1 md:space-x-2 text-gray-400">
-              <Filter className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="text-xs md:text-sm">{expenses.length} total</span>
+            {/* Tabs - Expenses vs Income */}
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 bg-gray-800/30 p-1 rounded-lg w-fit">
+                <button
+                  onClick={() => setActiveTab('expenses')}
+                  className={`px-4 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                    activeTab === 'expenses'
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span className="font-medium">Expenses</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('income')}
+                  className={`px-4 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                    activeTab === 'income'
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <DollarSign className="w-4 h-4" />
+                  <span className="font-medium">Income</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          {isLoadingExpenses ? (
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nex-yellow mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading expenses...</p>
-            </div>
-          ) : (
-            <ExpenseTable
-              expenses={expenses}
-              onEdit={handleEditExpense}
-              onDelete={handleDeleteExpense}
-              onViewReceipt={handleViewReceipt}
-            />
-          )}
-        </div>
+            {activeTab === 'expenses' ? (
+              <>
+                {/* Summary Cards */}
+                <SummaryCards
+                  totalExpenses={totalExpenses}
+                  pendingApproval={pendingApproval}
+                  approvedThisMonth={approvedThisMonth}
+                  budgetRemaining={budgetRemaining}
+                  currency={currency}
+                  onPendingClick={() => setShowPendingModal(true)}
+                />
+
+                {/* Expense Table */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-3 md:mb-4">
+                    <h2 className="text-xl md:text-2xl font-bold text-white">All Expenses</h2>
+                    <div className="flex items-center space-x-1 md:space-x-2 text-gray-400">
+                      <Filter className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="text-xs md:text-sm">{expenses.length} total</span>
+                    </div>
+                  </div>
+
+                  {isLoadingExpenses ? (
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-12 text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nex-yellow mx-auto mb-4"></div>
+                      <p className="text-gray-400">Loading expenses...</p>
+                    </div>
+                  ) : (
+                    <ExpenseTable
+                      expenses={expenses}
+                      onEdit={handleEditExpense}
+                      onDelete={handleDeleteExpense}
+                      onViewReceipt={handleViewReceipt}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Income Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-white">Income Records</h2>
+                    <button
+                      onClick={() => setShowAddIncomeModal(true)}
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center space-x-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Income</span>
+                    </button>
+                  </div>
+                  <IncomeList session={session} refreshTrigger={incomeRefreshTrigger} />
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -426,6 +493,16 @@ export default function ExpensaPage() {
           isOpen={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onExtracted={handleExtractedData}
+        />
+
+        <AddIncomeModal
+          isOpen={showAddIncomeModal}
+          onClose={() => setShowAddIncomeModal(false)}
+          onSuccess={() => {
+            setIncomeRefreshTrigger(prev => prev + 1);
+            toast.success('Income added successfully!');
+          }}
+          session={session}
         />
       </div>
     </div>

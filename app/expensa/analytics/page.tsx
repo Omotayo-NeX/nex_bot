@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PendingExpensesModal from './components/PendingExpensesModal';
+import AnalyticsSkeleton from './components/AnalyticsSkeleton';
+import CategoryPieChart from './components/CategoryPieChart';
+import MonthlyTrendChart from './components/MonthlyTrendChart';
+import BudgetProgressIndicator from './components/BudgetProgressIndicator';
 
 interface Expense {
   id: string;
@@ -30,6 +34,19 @@ interface Expense {
   status: 'pending' | 'approved' | 'rejected' | 'reimbursed';
   receiptUrl: string | null;
   projectName: string | null;
+}
+
+interface Income {
+  id: string;
+  source: string;
+  category: string;
+  amount: number;
+  currency: string;
+  description: string | null;
+  incomeDate: string;
+  status: string;
+  projectName: string | null;
+  clientName: string | null;
 }
 
 interface CategoryData {
@@ -57,13 +74,16 @@ export default function AnalyticsPage() {
   const { user, session, loading } = useAuth();
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(true);
+  const [isLoadingIncomes, setIsLoadingIncomes] = useState(true);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiInsights, setAiInsights] = useState<AIInsight | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year' | 'custom'>('month');
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
 
   const hasFetchedRef = useRef(false);
 
@@ -76,6 +96,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (user && session && !hasFetchedRef.current) {
       fetchExpenses();
+      fetchIncomes();
       hasFetchedRef.current = true;
     }
   }, [user, session]);
@@ -100,6 +121,32 @@ export default function AnalyticsPage() {
       toast.error('Failed to load expenses');
     } finally {
       setIsLoadingExpenses(false);
+    }
+  };
+
+  const fetchIncomes = async () => {
+    if (!session) return;
+
+    setIsLoadingIncomes(true);
+    try {
+      const response = await fetch('/api/expensa/income', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch income');
+
+      const data = await response.json();
+      setIncomes(data.incomes || []);
+    } catch (error: any) {
+      console.error('Failed to fetch income:', error);
+      // Don't show error toast if income table doesn't exist yet
+      if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+        toast.error('Failed to load income');
+      }
+    } finally {
+      setIsLoadingIncomes(false);
     }
   };
 
@@ -266,9 +313,55 @@ export default function AnalyticsPage() {
 
   const filteredExpenses = getFilteredExpenses();
 
+  // Calculate previous period for comparison
+  const getPreviousPeriodExpenses = () => {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
+
+    if (timeRange === 'custom') {
+      return []; // Skip comparison for custom ranges
+    }
+
+    switch (timeRange) {
+      case 'week':
+        endDate.setDate(now.getDate() - 7);
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case 'month':
+        endDate.setMonth(now.getMonth() - 1);
+        startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case 'quarter':
+        endDate.setMonth(now.getMonth() - 3);
+        startDate.setMonth(endDate.getMonth() - 3);
+        break;
+      case 'year':
+        endDate.setFullYear(now.getFullYear() - 1);
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        break;
+    }
+
+    return expenses.filter(exp => {
+      const expDate = new Date(exp.expenseDate);
+      return expDate >= startDate && expDate <= endDate;
+    });
+  };
+
+  const previousPeriodExpenses = getPreviousPeriodExpenses();
+
   // Calculate analytics
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
   const averageExpense = filteredExpenses.length > 0 ? totalExpenses / filteredExpenses.length : 0;
+
+  // Previous period totals
+  const prevTotalExpenses = previousPeriodExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+  const prevAverageExpense = previousPeriodExpenses.length > 0 ? prevTotalExpenses / previousPeriodExpenses.length : 0;
+
+  // Calculate percentage changes
+  const totalChange = prevTotalExpenses > 0 ? ((totalExpenses - prevTotalExpenses) / prevTotalExpenses) * 100 : 0;
+  const avgChange = prevAverageExpense > 0 ? ((averageExpense - prevAverageExpense) / prevAverageExpense) * 100 : 0;
+  const countChange = previousPeriodExpenses.length > 0 ? ((filteredExpenses.length - previousPeriodExpenses.length) / previousPeriodExpenses.length) * 100 : 0;
 
   // Category breakdown
   const categoryData: CategoryData[] = Object.entries(
@@ -304,12 +397,49 @@ export default function AnalyticsPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-nex-yellow border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  // Filter incomes by time range
+  const getFilteredIncomes = () => {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = now;
+
+    if (timeRange === 'custom') {
+      if (!customStartDate || !customEndDate) {
+        return incomes;
+      }
+      startDate = new Date(customStartDate);
+      endDate = new Date(customEndDate);
+    } else {
+      switch (timeRange) {
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+    }
+
+    return incomes.filter(inc => {
+      const incDate = new Date(inc.incomeDate);
+      return incDate >= startDate && incDate <= endDate;
+    });
+  };
+
+  const filteredIncomes = getFilteredIncomes();
+
+  // Calculate income analytics
+  const totalIncome = filteredIncomes.reduce((sum, inc) => sum + parseFloat(inc.amount.toString()), 0);
+  const netProfit = totalIncome - totalExpenses;
+
+  if (loading || isLoadingExpenses || isLoadingIncomes) {
+    return <AnalyticsSkeleton />;
   }
 
   if (!user) return null;
@@ -336,7 +466,10 @@ export default function AnalyticsPage() {
               </div>
             </div>
             <button
-              onClick={fetchExpenses}
+              onClick={() => {
+                fetchExpenses();
+                fetchIncomes();
+              }}
               className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white flex-shrink-0"
               title="Refresh data"
             >
@@ -415,7 +548,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6 md:mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -426,7 +559,18 @@ export default function AnalyticsPage() {
               <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-nex-yellow" />
             </div>
             <p className="text-xl md:text-3xl font-bold text-white">₦{totalExpenses.toLocaleString()}</p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">{filteredExpenses.length} transactions</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs md:text-sm text-gray-500">{filteredExpenses.length} transactions</p>
+              {timeRange !== 'custom' && prevTotalExpenses > 0 && (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  totalChange > 0 ? 'bg-red-500/20 text-red-400' :
+                  totalChange < 0 ? 'bg-green-500/20 text-green-400' :
+                  'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {totalChange > 0 ? '+' : ''}{totalChange.toFixed(1)}%
+                </span>
+              )}
+            </div>
           </motion.div>
 
           <motion.div
@@ -440,7 +584,18 @@ export default function AnalyticsPage() {
               <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
             </div>
             <p className="text-xl md:text-3xl font-bold text-white">₦{averageExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">Per transaction</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs md:text-sm text-gray-500">Per transaction</p>
+              {timeRange !== 'custom' && prevAverageExpense > 0 && (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  avgChange > 0 ? 'bg-red-500/20 text-red-400' :
+                  avgChange < 0 ? 'bg-green-500/20 text-green-400' :
+                  'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {avgChange > 0 ? '+' : ''}{avgChange.toFixed(1)}%
+                </span>
+              )}
+            </div>
           </motion.div>
 
           <motion.div
@@ -472,6 +627,48 @@ export default function AnalyticsPage() {
             </div>
             <p className="text-xl md:text-3xl font-bold text-white">{statusCounts.pending || 0}</p>
             <p className="text-xs md:text-sm text-gray-500 mt-1">Click to review</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-4 md:p-6"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-400 text-xs md:text-sm">Total Income</span>
+              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+            </div>
+            <p className="text-xl md:text-3xl font-bold text-white">₦{totalIncome.toLocaleString()}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">{filteredIncomes.length} records</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className={`rounded-xl p-4 md:p-6 border ${
+              netProfit >= 0
+                ? 'bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30'
+                : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-400 text-xs md:text-sm">Net Profit</span>
+              {netProfit >= 0 ? (
+                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+              ) : (
+                <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
+              )}
+            </div>
+            <p className={`text-xl md:text-3xl font-bold ${
+              netProfit >= 0 ? 'text-blue-400' : 'text-red-400'
+            }`}>
+              ₦{Math.abs(netProfit).toLocaleString()}
+            </p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">
+              {netProfit >= 0 ? 'Profit' : 'Loss'}
+            </p>
           </motion.div>
         </div>
 
@@ -563,37 +760,111 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        {/* Category Breakdown */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Spending by Category</h2>
-          <div className="space-y-4">
-            {categoryData.map((category, idx) => (
-              <motion.div
-                key={category.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-white font-medium">{category.name}</span>
-                  <div className="text-right">
-                    <span className="text-white font-semibold">₦{category.amount.toLocaleString()}</span>
-                    <span className="text-gray-400 text-sm ml-2">({category.percentage.toFixed(1)}%)</span>
+        {/* Monthly Trends & Budget Progress */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Monthly Trend Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Spending Trends</h2>
+            {monthlyTrends.length > 0 ? (
+              <MonthlyTrendChart data={monthlyTrends} />
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-400">
+                <p>No trend data available</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Budget Progress */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-white">Budget Progress</h2>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-sm">Budget:</span>
+                <input
+                  type="number"
+                  value={monthlyBudget || ''}
+                  onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                  placeholder="Set budget"
+                  className="w-32 px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-nex-yellow"
+                />
+              </div>
+            </div>
+            {monthlyBudget > 0 ? (
+              <BudgetProgressIndicator spent={totalExpenses} budget={monthlyBudget} />
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-gray-400">
+                <div className="text-center">
+                  <p className="mb-2">Set a monthly budget to track progress</p>
+                  <p className="text-sm text-gray-500">Enter amount above ↑</p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Category Breakdown with Pie Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Pie Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Category Distribution</h2>
+            {categoryData.length > 0 ? (
+              <CategoryPieChart data={categoryData} />
+            ) : (
+              <div className="flex items-center justify-center h-[400px] text-gray-400">
+                <p>No category data available</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Category List */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Spending by Category</h2>
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+              {categoryData.map((category, idx) => (
+                <motion.div
+                  key={category.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium">{category.name}</span>
+                    <div className="text-right">
+                      <span className="text-white font-semibold">₦{category.amount.toLocaleString()}</span>
+                      <span className="text-gray-400 text-sm ml-2">({category.percentage.toFixed(1)}%)</span>
+                    </div>
                   </div>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${category.percentage}%` }}
-                    transition={{ delay: idx * 0.1 + 0.2, duration: 0.5 }}
-                    className="h-full bg-gradient-to-r from-nex-yellow to-yellow-500 rounded-full"
-                  />
-                </div>
-                <p className="text-sm text-gray-500">{category.count} transactions</p>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${category.percentage}%` }}
+                      transition={{ delay: idx * 0.1 + 0.2, duration: 0.5 }}
+                      className="h-full bg-gradient-to-r from-nex-yellow to-yellow-500 rounded-full"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">{category.count} transactions</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </div>
 
         {/* Export Options */}

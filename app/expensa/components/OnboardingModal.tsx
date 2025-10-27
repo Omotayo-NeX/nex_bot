@@ -326,7 +326,17 @@ export default function OnboardingModal({ isOpen, onComplete }: OnboardingModalP
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end mt-6 pt-6 border-t border-gray-700/50">
+              <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700/50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('expensa_onboarding_completed', 'true');
+                    onComplete();
+                  }}
+                  className="px-4 py-2 text-gray-400 hover:text-white text-sm sm:text-base transition-colors"
+                >
+                  Skip for Now
+                </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}

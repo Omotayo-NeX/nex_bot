@@ -91,6 +91,7 @@
     "react-dom": "^18.3.1",
     "react-markdown": "9.1.0",
     "react-resizable-panels": "2.1.7",
+    "recharts": "^3.3.0",
     "redis": "5.0.0",
     "remark-gfm": "4.0.0",
     "resumable-stream": "2.0.0",

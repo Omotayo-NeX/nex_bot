@@ -88,38 +88,83 @@ export async function POST(req: NextRequest) {
       return acc;
     }, {});
 
-    // Create analysis prompt
-    const analysisPrompt = `You are a financial advisor analyzing business expense data. Provide insights and recommendations based on the following data:
+    // Calculate advanced metrics
+    const monthlyAmounts = Object.values(monthlyData).map(v => v as number);
+    const hasGrowth = monthlyAmounts.length > 1 &&
+      monthlyAmounts[monthlyAmounts.length - 1] > monthlyAmounts[0];
+    const volatility = monthlyAmounts.length > 1
+      ? Math.max(...monthlyAmounts) - Math.min(...monthlyAmounts)
+      : 0;
 
+    // Find anomalies
+    const avgAmount = totalSpent / expenses.length;
+    const anomalies = expenses.filter(exp =>
+      parseFloat(exp.amount.toString()) > avgAmount * 2
+    );
+
+    // Spending patterns
+    const weekendSpending = expenses.filter(exp => {
+      const day = new Date(exp.expenseDate).getDay();
+      return day === 0 || day === 6;
+    });
+
+    // Category concentration (is spending diverse or concentrated?)
+    const topCategoryPercent = topCategories[0]?.percentage || 0;
+
+    // Create enhanced analysis prompt
+    const analysisPrompt = `You are an expert financial analyst with deep expertise in business expense optimization, cash flow management, and financial health assessment. Analyze this business expense data with strategic insight:
+
+FINANCIAL OVERVIEW:
 Time Period: ${timeRange}
-Total Expenses: ₦${totalSpent.toLocaleString()}
-Number of Transactions: ${expenses.length}
-Average Expense: ₦${averageExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+Total Expenses: ₦${totalSpent.toLocaleString()} (${expenses.length} transactions)
+Average Transaction: ₦${averageExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+Spending Volatility: ₦${volatility.toLocaleString()}
 
-Top Spending Categories:
-${topCategories.map(cat => `- ${cat.name}: ₦${cat.amount.toLocaleString()} (${cat.percentage}%) - ${cat.count} transactions`).join('\n')}
+CATEGORY ANALYSIS:
+${topCategories.map((cat, idx) => `${idx + 1}. ${cat.name}: ₦${cat.amount.toLocaleString()} (${cat.percentage}%) - ${cat.count} transactions`).join('\n')}
+Category Concentration: ${topCategoryPercent > 50 ? 'Highly concentrated' : topCategoryPercent > 30 ? 'Moderately concentrated' : 'Well diversified'}
 
+TEMPORAL PATTERNS:
+Monthly Trend: ${hasGrowth ? 'Increasing' : 'Decreasing'}
 Monthly Breakdown:
-${Object.entries(monthlyData).map(([month, amount]) => `- ${month}: ₦${(amount as number).toLocaleString()}`).join('\n')}
+${Object.entries(monthlyData).map(([month, amount]) => `  ${month}: ₦${(amount as number).toLocaleString()}`).join('\n')}
 
-Status Distribution:
-${Object.entries(statusBreakdown).map(([status, count]) => `- ${status}: ${count as number} expenses`).join('\n')}
+SPENDING BEHAVIOR:
+Weekend Transactions: ${weekendSpending.length} (${((weekendSpending.length / expenses.length) * 100).toFixed(1)}%)
+Large Transactions (>2x average): ${anomalies.length}
+${anomalies.length > 0 ? `Largest: ₦${Math.max(...anomalies.map(e => parseFloat(e.amount.toString()))).toLocaleString()}` : ''}
 
-Please provide:
-1. A brief summary of spending patterns (2-3 sentences)
-2. 3-5 key trends or observations
-3. 3-5 actionable recommendations for better expense management
-4. Budget health assessment (excellent/good/warning/critical)
+APPROVAL STATUS:
+${Object.entries(statusBreakdown).map(([status, count]) => `  ${status}: ${count as number}`).join('\n')}
 
-Return the response as a valid JSON object with this exact structure:
+PROVIDE STRATEGIC ANALYSIS:
+1. Summary: Deep insight into overall financial health, spending efficiency, and key patterns (3-4 sentences)
+2. Trends: 4-6 specific, data-driven observations with actionable context
+3. Recommendations: 4-6 strategic, prioritized recommendations with expected impact
+4. Budget Health: Assess as excellent/good/warning/critical based on:
+   - Spending concentration
+   - Growth trajectory
+   - Volatility
+   - Efficiency indicators
+
+Focus on:
+- Cost optimization opportunities
+- Risk identification (concentration, anomalies)
+- Strategic spending improvements
+- Cash flow optimization
+- Comparative benchmarks (if applicable)
+
+Return ONLY valid JSON with this structure:
 {
-  "summary": "string",
+  "summary": "string (comprehensive financial health assessment)",
+  "topSpendingCategory": "string (category name)",
+  "averageExpense": number,
+  "trends": ["detailed trend 1", "detailed trend 2", ...],
+  "recommendations": ["strategic recommendation 1", "strategic recommendation 2", ...],
   "budgetHealth": "excellent" | "good" | "warning" | "critical",
-  "trends": ["trend1", "trend2", "trend3"],
-  "recommendations": ["rec1", "rec2", "rec3"]
-}
-
-Important: Return ONLY the JSON object, no markdown formatting or explanations.`;
+  "riskFactors": ["risk 1", "risk 2"] or [],
+  "opportunities": ["opportunity 1", "opportunity 2"] or []
+}`;
 
     // Call OpenAI for analysis
     const response = await openai.chat.completions.create({
@@ -127,15 +172,29 @@ Important: Return ONLY the JSON object, no markdown formatting or explanations.`
       messages: [
         {
           role: 'system',
-          content: 'You are a professional financial advisor specializing in business expense analysis. Provide clear, actionable insights based on expense data. Always respond with valid JSON only.'
+          content: `You are a senior financial strategist with 20+ years experience in corporate finance, expense optimization, and business intelligence. You specialize in:
+- Identifying cost-saving opportunities
+- Risk assessment and mitigation
+- Cash flow optimization
+- Strategic financial planning
+- Data-driven decision making
+
+Your analysis should be:
+- Strategic and forward-looking
+- Data-driven with specific numbers
+- Actionable with clear next steps
+- Risk-aware and opportunity-focused
+- Written for business owners and CFOs
+
+Always respond with valid JSON only, no markdown or explanations.`
         },
         {
           role: 'user',
           content: analysisPrompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 1000
+      temperature: 0.8,
+      max_tokens: 1500
     });
 
     const content = response.choices[0]?.message?.content;
