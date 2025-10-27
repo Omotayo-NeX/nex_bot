@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         name,
         amount: (data as { amount: number; count: number }).amount,
         count: (data as { amount: number; count: number }).count,
-        percentage: (((data as { amount: number; count: number }).amount / totalSpent) * 100).toFixed(1)
+        percentage: parseFloat((((data as { amount: number; count: number }).amount / totalSpent) * 100).toFixed(1))
       }));
 
     // Monthly trend
@@ -98,12 +98,12 @@ export async function POST(req: NextRequest) {
 
     // Find anomalies
     const avgAmount = totalSpent / expenses.length;
-    const anomalies = expenses.filter(exp =>
+    const anomalies = expenses.filter((exp: typeof expenses[0]) =>
       parseFloat(exp.amount.toString()) > avgAmount * 2
     );
 
     // Spending patterns
-    const weekendSpending = expenses.filter(exp => {
+    const weekendSpending = expenses.filter((exp: typeof expenses[0]) => {
       const day = new Date(exp.expenseDate).getDay();
       return day === 0 || day === 6;
     });
@@ -132,7 +132,7 @@ ${Object.entries(monthlyData).map(([month, amount]) => `  ${month}: ₦${(amount
 SPENDING BEHAVIOR:
 Weekend Transactions: ${weekendSpending.length} (${((weekendSpending.length / expenses.length) * 100).toFixed(1)}%)
 Large Transactions (>2x average): ${anomalies.length}
-${anomalies.length > 0 ? `Largest: ₦${Math.max(...anomalies.map(e => parseFloat(e.amount.toString()))).toLocaleString()}` : ''}
+${anomalies.length > 0 ? `Largest: ₦${Math.max(...anomalies.map((e: typeof expenses[0]) => parseFloat(e.amount.toString()))).toLocaleString()}` : ''}
 
 APPROVAL STATUS:
 ${Object.entries(statusBreakdown).map(([status, count]) => `  ${status}: ${count as number}`).join('\n')}
