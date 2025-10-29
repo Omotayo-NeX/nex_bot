@@ -23,13 +23,13 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
-        // NeX AI Brand Colors
-        'nex-navy': '#0A0F24',
-        'nex-yellow': '#FEE440',
-        'nex-navy-light': '#1a2332',
-        'nex-navy-dark': '#050812',
-        'nex-yellow-light': '#fff59d',
-        'nex-yellow-dark': '#f9d71c',
+        // NeX Consulting Brand Colors (from official logo)
+        'nex-navy': '#1a1464',
+        'nex-purple': '#a855f7',
+        'nex-navy-light': '#2d2080',
+        'nex-navy-dark': '#120d40',
+        'nex-purple-light': '#c084fc',
+        'nex-purple-dark': '#9333ea',
 
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

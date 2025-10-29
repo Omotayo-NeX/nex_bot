@@ -4,21 +4,26 @@ export function OrganizationSchema() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'NeX Consulting Limited',
+    name: 'NeX Labs',
     legalName: 'NeX Consulting Limited',
+    alternateName: 'NeX AI',
     url: 'https://ai.nexconsultingltd.com',
     logo: 'https://ai.nexconsultingltd.com/Nex_logomark_white.png',
-    description: 'AI-powered marketing automation and business intelligence platform for African entrepreneurs',
+    description: 'NeX Labs is the AI innovation hub under NeX Consulting Ltd. Building intelligent products like NeX AI Chat and NeX Expense that help African businesses automate workflows and work smarter.',
     foundingDate: '2023',
+    areaServed: {
+      '@type': 'Place',
+      name: 'Africa',
+    },
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Support',
       email: 'nexconsultingltd@gmail.com',
+      availableLanguage: ['English'],
     },
     sameAs: [
-      // Add social media links when available
       'https://twitter.com/nexconsult_AI',
-      'https://linkedin.com/company/nex-consulting-ltd',
+      'https://linkedin.com/company/nexconsulting',
     ],
   };
 
@@ -35,9 +40,15 @@ export function WebSiteSchema() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'NeX AI',
+    name: 'NeX Labs',
+    alternateName: 'NeX AI',
     url: 'https://ai.nexconsultingltd.com',
-    description: 'AI-powered marketing automation for African entrepreneurs',
+    description: 'AI-powered business automation tools for African entrepreneurs. NeX AI Chat, NeX Expense tracking, and intelligent workflows.',
+    inLanguage: 'en-US',
+    publisher: {
+      '@type': 'Organization',
+      name: 'NeX Labs',
+    },
     potentialAction: {
       '@type': 'SearchAction',
       target: {
@@ -61,30 +72,36 @@ export function SoftwareApplicationSchema() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'NeX AI',
+    name: 'NeX Labs',
+    alternateName: 'NeX AI',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     offers: {
       '@type': 'Offer',
       price: '0',
-      priceCurrency: 'USD',
-      description: 'Free tier available',
+      priceCurrency: 'NGN',
+      description: 'Free tier available with premium plans',
     },
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.8',
-      ratingCount: '100',
+      ratingCount: '120',
     },
-    description: 'AI-powered marketing automation platform featuring intelligent chat assistant, image generation, voice synthesis, and business intelligence tools designed specifically for African entrepreneurs.',
+    description: 'AI-powered business automation platform featuring NeX AI Chat assistant, NeX Expense tracking, image generation, voice synthesis, and intelligent workflow tools designed specifically for African entrepreneurs.',
     featureList: [
-      'AI Chat Assistant for marketing and business advice',
+      'AI Chat Assistant for business automation',
+      'AI-powered Expense Tracking and Management',
       'AI Image Generation for marketing content',
-      'AI Voice Synthesis for voiceovers and audio content',
-      'RAG Knowledge Base for business insights',
-      'Usage analytics and cost tracking',
+      'AI Voice Synthesis for audio content',
+      'Intelligent workflow automation',
+      'Usage analytics and insights',
       'Multi-tier subscription plans',
     ],
-    screenshot: 'https://ai.nexconsultingltd.com/og-image',
+    screenshot: 'https://ai.nexconsultingltd.com/hero-nexlabs-2.png',
+    author: {
+      '@type': 'Organization',
+      name: 'NeX Consulting Limited',
+    },
   };
 
   return (
