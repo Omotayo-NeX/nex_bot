@@ -1,10 +1,11 @@
 'use client';
 
-import { signIn, getSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -13,15 +14,14 @@ export default function SignIn() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Check if user is already signed in
-    getSession().then(session => {
-      if (session) {
-        router.push('/chat');
-      }
-    });
-    
+    if (user) {
+      router.push('/chat');
+    }
+
     // Check for success messages in URL params
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('verified') === 'true') {
@@ -31,7 +31,7 @@ export default function SignIn() {
       setError('');  // Clear any existing errors
       setSuccess('Password updated successfully! You can now sign in with your new password.');
     }
-  }, [router]);
+  }, [router, user]);
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,20 +39,54 @@ export default function SignIn() {
     setError("");
     setSuccess("");
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: "/chat",
-    });
+    try {
+      // Sign in directly with Supabase client
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (result?.error) {
-      setError("Invalid email or password");
+      if (signInError) {
+        console.error('Sign in error:', signInError);
+        setError(signInError.message || "Invalid email or password");
+        setLoading(false);
+        return;
+      }
+
+      if (!data.session) {
+        setError("Failed to create session");
+        setLoading(false);
+        return;
+      }
+
+      // Sign in successful - AuthContext will handle the redirect
+      console.log('✅ Sign in successful, AuthContext will redirect to chat...');
+      // The AuthContext will detect the SIGNED_IN event and redirect to /chat
+      // Don't set loading to false here - let the redirect happen
+    } catch (err) {
+      console.error('Sign in error:', err);
+      setError("An error occurred during sign in");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/chat" });
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/chat`,
+        },
+      });
+
+      if (error) {
+        console.error('Google sign in error:', error);
+        setError("Failed to sign in with Google");
+      }
+    } catch (err) {
+      console.error('Google sign in error:', err);
+      setError("An error occurred during Google sign in");
+    }
   };
 
   return (
