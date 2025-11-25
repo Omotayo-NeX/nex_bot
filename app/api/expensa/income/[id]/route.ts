@@ -55,9 +55,9 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+async function updateIncomeHandler(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  params: Promise<{ id: string }>
 ) {
   try {
     const { id } = await params;
@@ -105,10 +105,11 @@ export async function PATCH(
     if (body.source !== undefined) updateData.source = body.source;
     if (body.category !== undefined) updateData.category = body.category;
     if (body.amount !== undefined) {
-      if (body.amount <= 0) {
+      const amount = parseFloat(body.amount);
+      if (amount <= 0) {
         return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 });
       }
-      updateData.amount = body.amount;
+      updateData.amount = amount;
     }
     if (body.currency !== undefined) updateData.currency = body.currency;
     if (body.description !== undefined) updateData.description = body.description;
@@ -127,12 +128,26 @@ export async function PATCH(
 
     return NextResponse.json(updatedIncome);
   } catch (error: any) {
-    console.error('PATCH /api/expensa/income/[id] error:', error);
+    console.error('UPDATE /api/expensa/income/[id] error:', error);
     return NextResponse.json(
       { error: 'Failed to update income record', details: error.message },
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateIncomeHandler(req, params);
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateIncomeHandler(req, params);
 }
 
 export async function DELETE(

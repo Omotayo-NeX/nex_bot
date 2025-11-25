@@ -22,9 +22,10 @@ interface Income {
 interface IncomeListProps {
   session: any;
   refreshTrigger: number;
+  onEdit: (income: Income) => void;
 }
 
-export default function IncomeList({ session, refreshTrigger }: IncomeListProps) {
+export default function IncomeList({ session, refreshTrigger, onEdit }: IncomeListProps) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [filteredIncomes, setFilteredIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function IncomeList({ session, refreshTrigger }: IncomeListProps)
   const [dateFilter, setDateFilter] = useState<string>('all');
   const hasFetchedRef = useRef(false);
 
-  const fetchIncomes = async () => {
+  const fetchIncomes = async (retryCount = 0) => {
     if (!session) return;
 
     setIsLoading(true);
@@ -45,7 +46,8 @@ export default function IncomeList({ session, refreshTrigger }: IncomeListProps)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch income records');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch income records');
       }
 
       const data = await response.json();
@@ -53,7 +55,18 @@ export default function IncomeList({ session, refreshTrigger }: IncomeListProps)
       setFilteredIncomes(data.incomes || []);
     } catch (error: any) {
       console.error('Failed to fetch income records:', error);
-      toast.error('Failed to load income records');
+
+      // Retry once if it's a timeout or connection error
+      if (retryCount === 0 && (error.message?.includes('timeout') || error.message?.includes('reach database') || error.message?.includes('500'))) {
+        console.log('Retrying income fetch...');
+        setTimeout(() => fetchIncomes(1), 1000);
+        return;
+      }
+
+      // Only show error toast if it's not a missing table error
+      if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+        toast.error('Unable to load income records');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -257,6 +270,7 @@ export default function IncomeList({ session, refreshTrigger }: IncomeListProps)
                 key={income.id}
                 income={income}
                 onDelete={handleDelete}
+                onEdit={onEdit}
                 session={session}
               />
             ))}

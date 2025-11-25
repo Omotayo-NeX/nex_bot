@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { Edit, Trash2, Eye, Calendar, Tag, User } from 'lucide-react';
 import { useState } from 'react';
+import DeleteConfirmModal from './DeleteConfirmModal';
 
 interface Expense {
   id: string;
@@ -31,6 +32,8 @@ export default function ExpenseTable({
 }: ExpenseTableProps) {
   const [sortField, setSortField] = useState<keyof Expense>('expenseDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const handleSort = (field: keyof Expense) => {
     if (sortField === field) {
@@ -102,6 +105,27 @@ export default function ExpenseTable({
       'Other': 'bg-gray-500/10 text-gray-400'
     };
     return colors[category] || colors['Other'];
+  };
+
+  const handleDeleteClick = (expense: Expense) => {
+    setExpenseToDelete({
+      id: expense.id,
+      name: expense.merchantName || 'Unknown Merchant'
+    });
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (expenseToDelete) {
+      onDelete(expenseToDelete.id);
+      setDeleteModalOpen(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setExpenseToDelete(null);
   };
 
   if (expenses.length === 0) {
@@ -207,24 +231,20 @@ export default function ExpenseTable({
                           <Eye className="w-4 h-4" />
                         </button>
                       )}
-                      {expense.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => onEdit(expense)}
-                            className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-gray-700/50 rounded-lg"
-                            title="Edit"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => onDelete(expense.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => onEdit(expense)}
+                        className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-gray-700/50 rounded-lg"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(expense)}
+                        className="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </motion.tr>
@@ -306,7 +326,7 @@ export default function ExpenseTable({
                     <span>Edit</span>
                   </button>
                   <button
-                    onClick={() => onDelete(expense.id)}
+                    onClick={() => handleDeleteClick(expense)}
                     className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors px-3 py-1.5 hover:bg-red-500/10 rounded-lg text-sm"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -318,6 +338,16 @@ export default function ExpenseTable({
           </motion.div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense?"
+        itemName={expenseToDelete?.name}
+      />
     </>
   );
 }

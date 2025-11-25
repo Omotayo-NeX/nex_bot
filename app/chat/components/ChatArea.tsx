@@ -45,13 +45,13 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
   return (
     <>
       {/* Chat Messages Area */}
-      <div className="flex flex-col h-screen bg-gradient-to-b from-[#0d1117] to-[#1c1f26] relative">
+      <div className="flex flex-col h-screen bg-nex-bg relative">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm border-b border-gray-700/50 px-6 py-4"
+        className="bg-gradient-to-r from-nex-gradient-start/10 to-nex-gradient-end/10 backdrop-blur-sm border-b border-nex-border/50 px-6 py-4"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -65,14 +65,14 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
                 NeX AI
               </h1>
-              <p className="text-sm text-gray-400">Your AI Marketing Assistant</p>
+              <p className="text-sm text-nex-text-muted">Your AI Marketing Assistant</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
+
+          <div className="flex items-center space-x-2 text-sm text-nex-text-muted">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span>Online</span>
           </div>
@@ -80,7 +80,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
       </motion.div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 pb-28">
+      <div className="flex-1 overflow-y-auto px-6 py-6 pb-28 bg-nex-bg">
         <AnimatePresence>
           {messages.length === 0 ? (
             <motion.div 
@@ -89,34 +89,34 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto"
             >
-              <motion.div 
-                animate={{ 
+              <motion.div
+                animate={{
                   rotate: [0, 5, -5, 0],
                   scale: [1, 1.05, 1]
                 }}
-                transition={{ 
-                  duration: 6, 
+                transition={{
+                  duration: 6,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className="w-20 h-20 relative mb-6 shadow-lg"
+                className="w-20 h-20 relative mb-6"
               >
                 <Image
                   src="/Nex_logomark_white.png"
                   alt="NeX AI Logo"
                   fill
                   sizes="80px"
-                  className="object-contain"
+                  className="object-contain drop-shadow-[0_0_15px_rgba(163,65,255,0.4)]"
                 />
               </motion.div>
-              
-              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+
+              <h2 className="text-3xl font-bold tracking-tight mb-4 bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
                 Welcome to NeX AI
               </h2>
-              <p className="text-gray-400 mb-8 text-lg">
+              <p className="text-nex-text-muted mb-8 text-lg leading-relaxed">
                 I'm your AI assistant for digital marketing and automation. How can I help you today?
               </p>
-              
+
               {/* Quick Start Suggestions */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-4xl">
                 {suggestions.map((suggestion, index) => (
@@ -125,15 +125,15 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + 0.1 * index, duration: 0.3 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => startSuggestion(suggestion)}
-                    className="p-4 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-purple-500/50 transition-all text-left group"
+                    className="p-4 bg-nex-surface/50 backdrop-blur-sm rounded-xl border border-nex-border hover:border-nex-gradient-end/50 transition-all duration-200 text-left group hover:shadow-[0_0_15px_rgba(163,65,255,0.4)]"
                   >
-                    <div className="font-medium text-purple-400 mb-1 group-hover:text-purple-300 transition-colors">
+                    <div className="font-semibold text-sm bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent mb-2 group-hover:opacity-100 transition-opacity">
                       💡 Quick Start
                     </div>
-                    <div className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+                    <div className="text-sm text-nex-text-muted group-hover:text-nex-text transition-colors leading-relaxed">
                       {suggestion}
                     </div>
                   </motion.button>
@@ -159,17 +159,17 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                   className="flex justify-start mb-6"
                 >
                   <div className="flex items-start space-x-3 max-w-4xl">
-                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-nex-gradient-start to-nex-gradient-end rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(163,65,255,0.5)]">
                       <Loader2 className="w-4 h-4 text-white animate-spin" />
                     </div>
-                    <div className="px-6 py-4 rounded-2xl bg-gray-800/80 backdrop-blur-sm border border-gray-700/50">
+                    <div className="px-6 py-4 rounded-2xl bg-nex-surface/80 backdrop-blur-sm border border-nex-border/50">
                       <div className="flex items-center space-x-2">
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-nex-gradient-start rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-nex-gradient-end rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-nex-gradient-start rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
-                        <span className="text-gray-400 text-sm">NeX AI is thinking...</span>
+                        <span className="text-nex-text-muted text-sm">NeX AI is thinking...</span>
                       </div>
                     </div>
                   </div>

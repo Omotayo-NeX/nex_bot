@@ -1,14 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, DollarSign, Calendar, User, FileText, Building2, Hash, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
+export interface IncomeFormData {
+  id?: string;
+  source: string;
+  category: string;
+  amount: string;
+  currency: string;
+  description: string;
+  incomeDate: string;
+  projectName: string;
+  clientName: string;
+  invoiceNumber: string;
+  status: string;
+}
 
 interface AddIncomeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   session: any;
+  initialData?: IncomeFormData | null;
 }
 
 const INCOME_SOURCES = [
@@ -38,20 +53,30 @@ const INCOME_CATEGORIES = [
   'Other Income'
 ];
 
-export default function AddIncomeModal({ isOpen, onClose, onSuccess, session }: AddIncomeModalProps) {
-  const [formData, setFormData] = useState({
-    source: '',
-    category: '',
-    amount: '',
-    currency: 'NGN',
-    description: '',
-    incomeDate: new Date().toISOString().split('T')[0],
-    projectName: '',
-    clientName: '',
-    invoiceNumber: '',
-    status: 'received'
-  });
+export default function AddIncomeModal({ isOpen, onClose, onSuccess, session, initialData }: AddIncomeModalProps) {
+  const isEditMode = !!initialData?.id;
+  const [formData, setFormData] = useState<IncomeFormData>(
+    initialData || {
+      source: '',
+      category: '',
+      amount: '',
+      currency: 'NGN',
+      description: '',
+      incomeDate: new Date().toISOString().split('T')[0],
+      projectName: '',
+      clientName: '',
+      invoiceNumber: '',
+      status: 'received'
+    }
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +94,14 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess, session }: 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/expensa/income', {
-        method: 'POST',
+      const url = isEditMode
+        ? `/api/expensa/income/${formData.id}`
+        : '/api/expensa/income';
+
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token}`
@@ -91,15 +122,15 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess, session }: 
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to add income');
+        throw new Error(error.error || `Failed to ${isEditMode ? 'update' : 'add'} income`);
       }
 
-      toast.success('Income added successfully!');
+      toast.success(`Income ${isEditMode ? 'updated' : 'added'} successfully!`);
       onSuccess();
       handleClose();
     } catch (error: any) {
-      console.error('Failed to add income:', error);
-      toast.error(error.message || 'Failed to add income');
+      console.error(`Failed to ${isEditMode ? 'update' : 'add'} income:`, error);
+      toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'add'} income`);
     } finally {
       setIsSubmitting(false);
     }
@@ -140,8 +171,8 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess, session }: 
                   <DollarSign className="w-6 h-6 text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Add Income</h2>
-                  <p className="text-sm text-gray-400">Record a new income transaction</p>
+                  <h2 className="text-2xl font-bold text-white">{isEditMode ? 'Edit Income' : 'Add Income'}</h2>
+                  <p className="text-sm text-gray-400">{isEditMode ? 'Update income transaction details' : 'Record a new income transaction'}</p>
                 </div>
               </div>
               <button
@@ -349,12 +380,12 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess, session }: 
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Adding...</span>
+                      <span>{isEditMode ? 'Updating...' : 'Adding...'}</span>
                     </>
                   ) : (
                     <>
                       <DollarSign className="w-5 h-5" />
-                      <span>Add Income</span>
+                      <span>{isEditMode ? 'Update Income' : 'Add Income'}</span>
                     </>
                   )}
                 </button>

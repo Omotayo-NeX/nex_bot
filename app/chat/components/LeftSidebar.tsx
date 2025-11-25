@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Image, Mic, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette, Search, Wallet } from 'lucide-react';
+import { Plus, Pin, Clock, User, Settings, Mail, CheckCircle, AlertCircle, Crown, LogOut, Palette, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
@@ -8,8 +8,6 @@ import { useRouter } from 'next/navigation';
 
 interface LeftSidebarProps {
   onNewChat: () => void;
-  onOpenPictureGenerator: () => void;
-  onOpenVoiceGenerator: () => void;
   onCloseSidebar?: () => void;
   onLoadConversation?: (id: string) => void;
 }
@@ -30,7 +28,7 @@ interface ConversationData {
   preview: string;
 }
 
-export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenVoiceGenerator, onCloseSidebar, onLoadConversation }: LeftSidebarProps) {
+export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversation }: LeftSidebarProps) {
   const { user, session, signOut, loading } = useAuth();
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -205,12 +203,18 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ x: -260, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-[280px] bg-[#111827] border-r border-gray-700/50 flex flex-col h-full"
+      className="w-[280px] bg-nex-surface border-r border-nex-border flex flex-col h-full"
     >
+      {/* NeX AI Title */}
+      <div className="px-6 py-4 border-b border-nex-border">
+        <h2 className="text-lg font-semibold bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
+          NeX AI
+        </h2>
+      </div>
       {/* New Chat Button */}
       <div className="p-4 space-y-3">
         <button
@@ -218,7 +222,7 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
             onNewChat();
             onCloseSidebar?.();
           }}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-nex-navy to-nex-navy-light hover:from-nex-navy-light hover:to-nex-navy text-white rounded-xl font-medium transition-all hover:scale-105 transform"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end hover:shadow-[0_0_20px_rgba(163,65,255,0.3)] text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 transform"
         >
           <Plus className="w-4 h-4" />
           <span>New Chat</span>
@@ -232,52 +236,8 @@ export default function LeftSidebar({ onNewChat, onOpenPictureGenerator, onOpenV
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white placeholder-gray-400 rounded-lg border border-gray-700 focus:border-nex-yellow focus:outline-none focus:ring-2 focus:ring-nex-yellow/20 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-nex-bg text-white placeholder-gray-400 rounded-lg border border-nex-border focus:border-nex-gradient-end focus:outline-none focus:ring-2 focus:ring-nex-gradient-end/20 transition-all"
           />
-        </div>
-      </div>
-
-      {/* AI Tools Section */}
-      <div className="px-4 pb-4">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">AI Tools</h3>
-        <div className="space-y-2">
-          {/* Picture Generator */}
-          <button
-            onClick={() => {
-              onOpenPictureGenerator();
-              onCloseSidebar?.();
-            }}
-            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors relative"
-          >
-            <Image className="w-4 h-4" />
-            <span className="text-sm">Picture Generator</span>
-            <span className="ml-auto bg-green-600 text-xs px-2 py-1 rounded text-white">New</span>
-          </button>
-
-          {/* Voice Generator */}
-          <button
-            onClick={() => {
-              onOpenVoiceGenerator();
-              onCloseSidebar?.();
-            }}
-            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors"
-          >
-            <Mic className="w-4 h-4" />
-            <span className="text-sm">Voice Generator</span>
-          </button>
-
-          {/* Expensa - Expense Tracker */}
-          <button
-            onClick={() => {
-              router.push('/expensa');
-              onCloseSidebar?.();
-            }}
-            className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors relative"
-          >
-            <Wallet className="w-4 h-4" />
-            <span className="text-sm">Expensa</span>
-            <span className="ml-auto bg-nex-yellow text-xs px-2 py-1 rounded text-nex-navy font-semibold">New</span>
-          </button>
         </div>
       </div>
 

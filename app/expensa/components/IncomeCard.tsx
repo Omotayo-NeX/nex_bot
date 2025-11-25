@@ -2,6 +2,8 @@
 import { motion } from 'framer-motion';
 import { DollarSign, Calendar, User, Building2, Hash, Trash2, Edit, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import DeleteConfirmModal from './DeleteConfirmModal';
 
 interface Income {
   id: string;
@@ -20,14 +22,20 @@ interface Income {
 interface IncomeCardProps {
   income: Income;
   onDelete: (id: string) => void;
+  onEdit: (income: Income) => void;
   session: any;
 }
 
-export default function IncomeCard({ income, onDelete, session }: IncomeCardProps) {
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this income record?')) {
-      return;
-    }
+export default function IncomeCard({ income, onDelete, onEdit, session }: IncomeCardProps) {
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = () => {
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
 
     try {
       const response = await fetch(`/api/expensa/income/${income.id}`, {
@@ -43,10 +51,17 @@ export default function IncomeCard({ income, onDelete, session }: IncomeCardProp
 
       toast.success('Income deleted successfully');
       onDelete(income.id);
+      setDeleteModalOpen(false);
     } catch (error: any) {
       console.error('Failed to delete income:', error);
       toast.error('Failed to delete income');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
   };
 
   const getStatusConfig = (status: string) => {
@@ -177,13 +192,31 @@ export default function IncomeCard({ income, onDelete, session }: IncomeCardProp
       {/* Actions */}
       <div className="flex items-center justify-end space-x-2 pt-4 border-t border-gray-700">
         <button
-          onClick={handleDelete}
+          onClick={() => onEdit(income)}
+          className="p-2 hover:bg-green-500/20 rounded-lg transition-colors text-green-400 hover:text-green-300 group"
+          title="Edit income"
+        >
+          <Edit className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleDeleteClick}
           className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400 hover:text-red-300 group"
           title="Delete income"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Income"
+        message="Are you sure you want to delete this income record?"
+        itemName={`${income.source} - ${income.category}`}
+        isDeleting={isDeleting}
+      />
     </motion.div>
   );
 }

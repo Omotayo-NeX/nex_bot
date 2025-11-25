@@ -47,6 +47,7 @@ export default function ExpensaPage() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'income'>('expenses');
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [incomeRefreshTrigger, setIncomeRefreshTrigger] = useState(0);
+  const [editingIncome, setEditingIncome] = useState<any>(null);
 
   const hasFetchedRef = useRef(false);
 
@@ -446,7 +447,26 @@ export default function ExpensaPage() {
                       <span>Add Income</span>
                     </button>
                   </div>
-                  <IncomeList session={session} refreshTrigger={incomeRefreshTrigger} />
+                  <IncomeList
+                    session={session}
+                    refreshTrigger={incomeRefreshTrigger}
+                    onEdit={(income) => {
+                      setEditingIncome({
+                        id: income.id,
+                        source: income.source,
+                        category: income.category,
+                        amount: income.amount.toString(),
+                        currency: income.currency,
+                        description: income.description || '',
+                        incomeDate: new Date(income.incomeDate).toISOString().split('T')[0],
+                        projectName: income.projectName || '',
+                        clientName: income.clientName || '',
+                        invoiceNumber: income.invoiceNumber || '',
+                        status: income.status
+                      });
+                      setShowAddIncomeModal(true);
+                    }}
+                  />
                 </div>
               </>
             )}
@@ -497,12 +517,16 @@ export default function ExpensaPage() {
 
         <AddIncomeModal
           isOpen={showAddIncomeModal}
-          onClose={() => setShowAddIncomeModal(false)}
+          onClose={() => {
+            setShowAddIncomeModal(false);
+            setEditingIncome(null);
+          }}
           onSuccess={() => {
             setIncomeRefreshTrigger(prev => prev + 1);
-            toast.success('Income added successfully!');
+            setEditingIncome(null);
           }}
           session={session}
+          initialData={editingIncome}
         />
       </div>
     </div>

@@ -181,7 +181,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 lg:left-[280px] right-0 border-t border-white/10 bg-[#0d0d0d] z-40">
+    <footer className="fixed bottom-0 left-0 lg:left-[280px] right-0 border-t border-nex-border bg-nex-surface/95 backdrop-blur-md z-40">
       <div className="mx-auto max-w-4xl px-4 py-3">
         <form onSubmit={handleSubmit}>
           {/* Image Previews */}
@@ -194,7 +194,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
                     alt={`Upload ${index + 1}`}
                     width={80}
                     height={80}
-                    className="rounded-lg object-cover border border-white/10"
+                    className="rounded-lg object-cover border border-nex-border"
                   />
                   <button
                     type="button"
@@ -209,7 +209,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             </div>
           )}
 
-          <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-black/40 px-3 py-2 backdrop-blur">
+          <div className="flex items-end gap-2 rounded-2xl border border-nex-border bg-nex-bg/60 px-3 py-2 backdrop-blur focus-within:border-nex-gradient-end/50 transition-all duration-200">
             <textarea
               ref={inputRef}
               value={input}
@@ -219,7 +219,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
               }}
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything about marketing, automation, or business growth..."
-              className="flex-1 resize-none bg-transparent outline-none px-2 py-2 text-sm leading-5 text-white placeholder-gray-400 min-h-[44px] max-h-[160px]"
+              className="flex-1 resize-none bg-transparent outline-none px-2 py-2 text-sm leading-5 text-white placeholder-nex-text-muted min-h-[44px] max-h-[160px]"
               disabled={isLoading}
               rows={1}
               style={{
@@ -241,7 +241,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-gray-400 hover:text-white/70 disabled:text-gray-600 disabled:cursor-not-allowed transition-all rounded-lg"
+              className="p-2 text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10"
               disabled={isLoading || selectedImages.length >= 4}
               title={selectedImages.length >= 4 ? 'Maximum 4 images' : 'Upload image'}
               aria-label="Upload image"
@@ -252,11 +252,11 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="button"
               onClick={startRecording}
-              className={`p-2 rounded-lg transition-all hover:text-white/70 ${
+              className={`p-2 rounded-lg transition-all duration-200 ${
                 isRecording
-                  ? 'text-red-400 animate-pulse'
+                  ? 'text-red-400 animate-pulse bg-red-500/10'
                   : speechSupported
-                    ? 'text-gray-400 hover:text-white'
+                    ? 'text-nex-text-muted hover:text-nex-gradient-end hover:bg-nex-gradient-end/10'
                     : 'text-gray-600 cursor-not-allowed'
               }`}
               disabled={isLoading || !speechSupported}
@@ -269,7 +269,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="submit"
               disabled={(!input.trim() && selectedImages.length === 0) || isLoading}
-              className="p-2 text-gray-400 hover:text-white/70 disabled:text-gray-600 disabled:cursor-not-allowed transition-all"
+              className="p-2 text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10 hover:shadow-[0_0_10px_rgba(163,65,255,0.3)]"
               aria-label="Send message"
             >
               {isLoading ? (

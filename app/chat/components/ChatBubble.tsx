@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { User, Bot, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatBubbleProps {
   message: {
@@ -38,18 +40,18 @@ export default function ChatBubble({ message, index, userName }: ChatBubbleProps
     >
       <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start space-x-3 max-w-4xl group`}>
         {/* Avatar */}
-        <motion.div 
+        <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: index * 0.05 + 0.2, type: "spring", stiffness: 500 }}
           className={`flex-shrink-0 ${isUser ? 'ml-3' : 'mr-3'}`}
         >
           {isUser ? (
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-nex-gradient-start to-nex-gradient-end rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(163,65,255,0.4)]">
               <User className="w-4 h-4 text-white" />
             </div>
           ) : (
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-nex-gradient-start to-nex-gradient-end rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(163,65,255,0.4)]">
               <Bot className="w-4 h-4 text-white" />
             </div>
           )}
@@ -58,18 +60,18 @@ export default function ChatBubble({ message, index, userName }: ChatBubbleProps
         {/* Message Bubble */}
         <div className={`relative flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
           {/* Timestamp */}
-          <div className={`text-xs text-gray-500 mb-1 px-1 ${isUser ? 'text-right' : 'text-left'}`}>
+          <div className={`text-xs text-nex-text-muted mb-1 px-1 ${isUser ? 'text-right' : 'text-left'}`}>
             {isUser ? (userName || 'You') : 'NeX AI'} • {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
 
           {/* Message Content */}
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 300, duration: 0.2 }}
             className={`relative px-6 py-4 rounded-2xl max-w-2xl shadow-lg ${
               isUser
-                ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white'
-                : 'bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-100'
+                ? 'bg-gradient-to-br from-nex-gradient-start to-nex-gradient-end text-white shadow-[0_0_15px_rgba(163,65,255,0.3)]'
+                : 'bg-nex-surface/80 backdrop-blur-sm border border-nex-border/50 text-nex-text'
             }`}
           >
             {/* Images if present */}
@@ -90,19 +92,75 @@ export default function ChatBubble({ message, index, userName }: ChatBubbleProps
             )}
 
             {/* Message Text */}
-            <div className={`prose ${isUser ? 'prose-invert' : ''} max-w-none`}>
-              <p className={`whitespace-pre-wrap leading-relaxed text-sm md:text-base ${
-                isUser ? 'text-white' : 'text-white opacity-100'
-              }`}>
-                {message.content}
-              </p>
+            <div className={`prose ${isUser ? 'prose-invert' : 'prose-slate'} max-w-none prose-sm md:prose-base`}>
+              {isUser ? (
+                <p className="whitespace-pre-wrap leading-relaxed text-white m-0">
+                  {message.content}
+                </p>
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  className="markdown-content"
+                  components={{
+                    // Headings
+                    h1: ({ node, ...props }) => <h1 className="text-2xl font-bold text-white mt-6 mb-4 first:mt-0 tracking-tight" {...props} />,
+                    h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-white mt-6 mb-3 first:mt-0 tracking-tight" {...props} />,
+                    h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-white mt-5 mb-3 first:mt-0 tracking-tight" {...props} />,
+                    h4: ({ node, ...props }) => <h4 className="text-base font-semibold text-white mt-4 mb-2 first:mt-0 tracking-tight" {...props} />,
+
+                    // Paragraphs
+                    p: ({ node, ...props }) => <p className="text-nex-text leading-7 mb-4 last:mb-0" {...props} />,
+
+                    // Lists
+                    ul: ({ node, ...props }) => <ul className="list-disc list-outside ml-5 mb-5 space-y-1.5 text-nex-text marker:text-nex-text-muted" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="list-decimal list-outside ml-5 mb-5 space-y-1.5 text-nex-text marker:text-nex-text-muted" {...props} />,
+                    li: ({ node, ...props }) => <li className="text-nex-text leading-7 pl-2" {...props} />,
+
+                    // Strong/Bold
+                    strong: ({ node, ...props }) => <strong className="font-semibold text-white" {...props} />,
+
+                    // Em/Italic
+                    em: ({ node, ...props }) => <em className="italic text-nex-text" {...props} />,
+
+                    // Code
+                    code: ({ node, inline, ...props }: any) =>
+                      inline ? (
+                        <code className="bg-nex-bg/70 text-nex-gradient-end px-1.5 py-0.5 rounded text-sm font-mono border border-nex-border/30" {...props} />
+                      ) : (
+                        <code className="block bg-nex-bg/70 text-nex-gradient-end p-3 rounded-lg text-sm font-mono overflow-x-auto my-3 border border-nex-border/30" {...props} />
+                      ),
+
+                    // Pre (code blocks)
+                    pre: ({ node, ...props }) => <pre className="bg-nex-bg/70 rounded-lg p-4 overflow-x-auto my-4 border border-nex-border/30" {...props} />,
+
+                    // Links
+                    a: ({ node, ...props }) => <a className="text-nex-gradient-end hover:text-nex-gradient-start underline transition-colors" {...props} />,
+
+                    // Blockquotes
+                    blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-nex-gradient-end pl-4 italic text-nex-text-muted my-4" {...props} />,
+
+                    // Horizontal Rule
+                    hr: ({ node, ...props }) => <hr className="border-nex-border my-6" {...props} />,
+
+                    // Tables
+                    table: ({ node, ...props }) => <table className="w-full border-collapse my-4" {...props} />,
+                    thead: ({ node, ...props }) => <thead className="bg-nex-bg/50" {...props} />,
+                    tbody: ({ node, ...props }) => <tbody className="divide-y divide-nex-border" {...props} />,
+                    tr: ({ node, ...props }) => <tr className="border-b border-nex-border" {...props} />,
+                    th: ({ node, ...props }) => <th className="px-4 py-2 text-left text-white font-semibold" {...props} />,
+                    td: ({ node, ...props }) => <td className="px-4 py-2 text-nex-text" {...props} />,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              )}
             </div>
 
             {/* Copy Button */}
             {!isUser && (
               <button
                 onClick={copyToClipboard}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 hover:text-white"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 rounded-lg bg-nex-bg/50 hover:bg-nex-gradient-end/20 text-nex-text-muted hover:text-nex-gradient-end border border-nex-border/30"
                 title="Copy message"
               >
                 {copied ? (
@@ -114,11 +172,11 @@ export default function ChatBubble({ message, index, userName }: ChatBubbleProps
             )}
 
             {/* Message Tail */}
-            <div 
+            <div
               className={`absolute top-3 w-3 h-3 transform rotate-45 ${
-                isUser 
-                  ? 'right-0 translate-x-1/2 bg-gradient-to-br from-purple-600 to-blue-600' 
-                  : 'left-0 -translate-x-1/2 bg-gray-800/80 border-l border-t border-gray-700/50'
+                isUser
+                  ? 'right-0 translate-x-1/2 bg-gradient-to-br from-nex-gradient-start to-nex-gradient-end'
+                  : 'left-0 -translate-x-1/2 bg-nex-surface/80 border-l border-t border-nex-border/50'
               }`}
             />
           </motion.div>

@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const userId = user.id;
 
-    // Get user info for plan details, create if doesn't exist
+    // Get user info with plan and usage in a single query
     let userRecord;
     try {
       userRecord = await prisma.user.findUnique({
@@ -48,7 +48,11 @@ export async function GET(req: NextRequest) {
         select: {
           plan: true,
           subscriptionStatus: true,
-          plan_expires_at: true
+          plan_expires_at: true,
+          chat_used_today: true,
+          videos_generated_this_week: true,
+          voice_minutes_this_week: true,
+          images_generated_this_week: true
         }
       });
     } catch (dbError: any) {
@@ -72,7 +76,11 @@ export async function GET(req: NextRequest) {
           select: {
             plan: true,
             subscriptionStatus: true,
-            plan_expires_at: true
+            plan_expires_at: true,
+            chat_used_today: true,
+            videos_generated_this_week: true,
+            voice_minutes_this_week: true,
+            images_generated_this_week: true
           }
         });
       } catch (createError: any) {
@@ -81,33 +89,22 @@ export async function GET(req: NextRequest) {
         userRecord = {
           plan: 'free',
           subscriptionStatus: 'inactive',
-          plan_expires_at: null
+          plan_expires_at: null,
+          chat_used_today: 0,
+          videos_generated_this_week: 0,
+          voice_minutes_this_week: 0,
+          images_generated_this_week: 0
         };
       }
     }
 
-    // Get user usage data directly from User table (simpler approach)
-    let userUsage;
-    try {
-      userUsage = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          chat_used_today: true,
-          videos_generated_this_week: true,
-          voice_minutes_this_week: true,
-          images_generated_this_week: true
-        }
-      });
-    } catch (dbError: any) {
-      console.error('Database query error (usage):', dbError.message);
-      // If database query fails, use defaults
-      userUsage = {
-        chat_used_today: 0,
-        videos_generated_this_week: 0,
-        voice_minutes_this_week: 0,
-        images_generated_this_week: 0
-      };
-    }
+    // Use the same userRecord for usage data (no second query needed)
+    const userUsage = {
+      chat_used_today: userRecord.chat_used_today || 0,
+      videos_generated_this_week: userRecord.videos_generated_this_week || 0,
+      voice_minutes_this_week: userRecord.voice_minutes_this_week || 0,
+      images_generated_this_week: userRecord.images_generated_this_week || 0
+    };
 
     // For now, we'll use the User table data since it's working
     // Future enhancement: migrate to UsageStats table for detailed tracking

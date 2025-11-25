@@ -1,7 +1,7 @@
 'use client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -19,9 +19,12 @@ import {
 import { toast } from 'sonner';
 import PendingExpensesModal from './components/PendingExpensesModal';
 import AnalyticsSkeleton from './components/AnalyticsSkeleton';
-import CategoryPieChart from './components/CategoryPieChart';
-import MonthlyTrendChart from './components/MonthlyTrendChart';
-import BudgetProgressIndicator from './components/BudgetProgressIndicator';
+import { formatCurrency } from '@/lib/utils/numberFormatter';
+
+// Lazy load heavy chart components
+const CategoryPieChart = lazy(() => import('./components/CategoryPieChart'));
+const MonthlyTrendChart = lazy(() => import('./components/MonthlyTrendChart'));
+const BudgetProgressIndicator = lazy(() => import('./components/BudgetProgressIndicator'));
 
 interface Expense {
   id: string;
@@ -95,13 +98,15 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (user && session && !hasFetchedRef.current) {
-      fetchExpenses();
-      fetchIncomes();
+      // Fetch expenses and income in parallel for faster loading
+      Promise.all([fetchExpenses(), fetchIncomes()]).catch(error => {
+        console.error('Error fetching data:', error);
+      });
       hasFetchedRef.current = true;
     }
   }, [user, session]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (retryCount = 0) => {
     if (!session) return;
 
     setIsLoadingExpenses(true);
@@ -112,19 +117,30 @@ export default function AnalyticsPage() {
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch expenses');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch expenses');
+      }
 
       const data = await response.json();
       setExpenses(data.expenses || []);
     } catch (error: any) {
       console.error('Failed to fetch expenses:', error);
-      toast.error('Failed to load expenses');
+
+      // Retry once if it's a timeout/connection error
+      if (retryCount === 0 && (error.message?.includes('timeout') || error.message?.includes('reach database'))) {
+        console.log('Retrying expense fetch...');
+        setTimeout(() => fetchExpenses(1), 1000);
+        return;
+      }
+
+      toast.error('Unable to load expenses. Please refresh the page.');
     } finally {
       setIsLoadingExpenses(false);
     }
   };
 
-  const fetchIncomes = async () => {
+  const fetchIncomes = async (retryCount = 0) => {
     if (!session) return;
 
     setIsLoadingIncomes(true);
@@ -135,15 +151,26 @@ export default function AnalyticsPage() {
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch income');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch income');
+      }
 
       const data = await response.json();
       setIncomes(data.incomes || []);
     } catch (error: any) {
       console.error('Failed to fetch income:', error);
+
+      // Retry once if it's a timeout/connection error
+      if (retryCount === 0 && (error.message?.includes('timeout') || error.message?.includes('reach database'))) {
+        console.log('Retrying income fetch...');
+        setTimeout(() => fetchIncomes(1), 1000);
+        return;
+      }
+
       // Don't show error toast if income table doesn't exist yet
       if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
-        toast.error('Failed to load income');
+        toast.error('Unable to load income data');
       }
     } finally {
       setIsLoadingIncomes(false);
@@ -438,7 +465,8 @@ export default function AnalyticsPage() {
   const totalIncome = filteredIncomes.reduce((sum, inc) => sum + parseFloat(inc.amount.toString()), 0);
   const netProfit = totalIncome - totalExpenses;
 
-  if (loading || isLoadingExpenses || isLoadingIncomes) {
+  // Show loading only if both are still loading
+  if (loading || (isLoadingExpenses && isLoadingIncomes)) {
     return <AnalyticsSkeleton />;
   }
 
@@ -467,8 +495,7 @@ export default function AnalyticsPage() {
             </div>
             <button
               onClick={() => {
-                fetchExpenses();
-                fetchIncomes();
+                Promise.all([fetchExpenses(), fetchIncomes()]);
               }}
               className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white flex-shrink-0"
               title="Refresh data"
@@ -552,17 +579,17 @@ export default function AnalyticsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Total Expenses</span>
-              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-nex-yellow" />
+              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-nex-yellow flex-shrink-0" />
             </div>
-            <p className="text-xl md:text-3xl font-bold text-white">₦{totalExpenses.toLocaleString()}</p>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs md:text-sm text-gray-500">{filteredExpenses.length} transactions</p>
+            <p className="text-lg md:text-2xl font-bold text-white break-words">{formatCurrency(totalExpenses, 'NGN', true)}</p>
+            <div className="flex items-center justify-between mt-1 gap-2">
+              <p className="text-xs md:text-sm text-gray-500 truncate">{filteredExpenses.length} transactions</p>
               {timeRange !== 'custom' && prevTotalExpenses > 0 && (
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${
                   totalChange > 0 ? 'bg-red-500/20 text-red-400' :
                   totalChange < 0 ? 'bg-green-500/20 text-green-400' :
                   'bg-gray-500/20 text-gray-400'
@@ -577,17 +604,17 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Average</span>
-              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400 flex-shrink-0" />
             </div>
-            <p className="text-xl md:text-3xl font-bold text-white">₦{averageExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs md:text-sm text-gray-500">Per transaction</p>
+            <p className="text-lg md:text-2xl font-bold text-white break-words">{formatCurrency(averageExpense, 'NGN', true)}</p>
+            <div className="flex items-center justify-between mt-1 gap-2">
+              <p className="text-xs md:text-sm text-gray-500 truncate">Per transaction</p>
               {timeRange !== 'custom' && prevAverageExpense > 0 && (
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${
                   avgChange > 0 ? 'bg-red-500/20 text-red-400' :
                   avgChange < 0 ? 'bg-green-500/20 text-green-400' :
                   'bg-gray-500/20 text-gray-400'
@@ -602,14 +629,14 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Top Category</span>
-              <PieChart className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+              <PieChart className="w-4 h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0" />
             </div>
             <p className="text-lg md:text-2xl font-bold text-white truncate">{categoryData[0]?.name || 'N/A'}</p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">
+            <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">
               {categoryData[0] ? `₦${categoryData[0].amount.toLocaleString()}` : 'No data'}
             </p>
           </motion.div>
@@ -619,35 +646,35 @@ export default function AnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             onClick={() => setShowPendingModal(true)}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6 cursor-pointer hover:border-yellow-500/50 hover:bg-gray-800/70 transition-all"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 md:p-6 cursor-pointer hover:border-yellow-500/50 hover:bg-gray-800/70 transition-all overflow-hidden"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Pending</span>
-              <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+              <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-yellow-400 flex-shrink-0" />
             </div>
-            <p className="text-xl md:text-3xl font-bold text-white">{statusCounts.pending || 0}</p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">Click to review</p>
+            <p className="text-lg md:text-2xl font-bold text-white break-words">{statusCounts.pending || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">Click to review</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-4 md:p-6"
+            className="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-4 md:p-6 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Total Income</span>
-              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
+              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0" />
             </div>
-            <p className="text-xl md:text-3xl font-bold text-white">₦{totalIncome.toLocaleString()}</p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">{filteredIncomes.length} records</p>
+            <p className="text-lg md:text-2xl font-bold text-white break-words">{formatCurrency(totalIncome, 'NGN', true)}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{filteredIncomes.length} records</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className={`rounded-xl p-4 md:p-6 border ${
+            className={`rounded-xl p-4 md:p-6 border overflow-hidden ${
               netProfit >= 0
                 ? 'bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30'
                 : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/30'
@@ -656,17 +683,17 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-xs md:text-sm">Net Profit</span>
               {netProfit >= 0 ? (
-                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-400 flex-shrink-0" />
               ) : (
-                <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
+                <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-red-400 flex-shrink-0" />
               )}
             </div>
-            <p className={`text-xl md:text-3xl font-bold ${
+            <p className={`text-lg md:text-2xl font-bold break-words ${
               netProfit >= 0 ? 'text-blue-400' : 'text-red-400'
             }`}>
-              ₦{Math.abs(netProfit).toLocaleString()}
+              {formatCurrency(Math.abs(netProfit), 'NGN', true)}
             </p>
-            <p className="text-xs md:text-sm text-gray-500 mt-1">
+            <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">
               {netProfit >= 0 ? 'Profit' : 'Loss'}
             </p>
           </motion.div>
@@ -770,7 +797,13 @@ export default function AnalyticsPage() {
           >
             <h2 className="text-2xl font-bold text-white mb-6">Spending Trends</h2>
             {monthlyTrends.length > 0 ? (
-              <MonthlyTrendChart data={monthlyTrends} />
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nex-yellow"></div>
+                </div>
+              }>
+                <MonthlyTrendChart data={monthlyTrends} />
+              </Suspense>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-400">
                 <p>No trend data available</p>
@@ -799,7 +832,13 @@ export default function AnalyticsPage() {
               </div>
             </div>
             {monthlyBudget > 0 ? (
-              <BudgetProgressIndicator spent={totalExpenses} budget={monthlyBudget} />
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nex-yellow"></div>
+                </div>
+              }>
+                <BudgetProgressIndicator spent={totalExpenses} budget={monthlyBudget} />
+              </Suspense>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-gray-400">
                 <div className="text-center">
@@ -821,7 +860,13 @@ export default function AnalyticsPage() {
           >
             <h2 className="text-2xl font-bold text-white mb-6">Category Distribution</h2>
             {categoryData.length > 0 ? (
-              <CategoryPieChart data={categoryData} />
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nex-yellow"></div>
+                </div>
+              }>
+                <CategoryPieChart data={categoryData} />
+              </Suspense>
             ) : (
               <div className="flex items-center justify-center h-[400px] text-gray-400">
                 <p>No category data available</p>

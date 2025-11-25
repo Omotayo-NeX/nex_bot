@@ -44,14 +44,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Only allow deletion of pending expenses
-    if (expense.status !== 'pending') {
-      return NextResponse.json(
-        { error: 'Cannot delete approved or reimbursed expenses' },
-        { status: 400 }
-      );
-    }
-
     // Delete expense
     await prisma.expense.delete({
       where: { id }

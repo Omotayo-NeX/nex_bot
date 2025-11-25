@@ -44,7 +44,15 @@ export async function GET(req: NextRequest) {
           orderBy: {
             createdAt: 'asc'
           },
-          take: 1 // Only get the first message for preview
+          take: 1, // Only get the first message for preview
+          select: {
+            content: true
+          }
+        },
+        _count: {
+          select: {
+            messages: true
+          }
         }
       },
       orderBy: [
@@ -59,7 +67,7 @@ export async function GET(req: NextRequest) {
       isPinned: conv.isPinned,
       timestamp: conv.updatedAt,
       preview: conv.messages[0]?.content.substring(0, 100) || '',
-      messageCount: conv.messages.length
+      messageCount: conv._count.messages
     }));
 
     return NextResponse.json(formattedConversations);
