@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/chat';
+  const redirect = searchParams.get('redirect') ?? searchParams.get('next') ?? '/chat';
 
   if (code) {
     try {
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
           // Don't fail the authentication if Prisma update fails
         }
 
-        // Redirect to chat page directly (no verification needed)
-        return NextResponse.redirect(new URL('/chat', request.url));
+        // Redirect to intended destination (no verification needed)
+        return NextResponse.redirect(new URL(redirect, request.url));
       }
       
       // If no user data

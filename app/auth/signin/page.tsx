@@ -1,10 +1,11 @@
 'use client';
 
-import { signIn, getSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -13,28 +14,25 @@ export default function SignIn() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Get redirect URL from query params
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectUrl = urlParams.get('redirect') || '/chat';
-
-    // Check if user is already signed in
-    getSession().then(session => {
-      if (session) {
-        router.push(redirectUrl);
-      }
-    });
+    // If user is already signed in, redirect to intended destination
+    if (user) {
+      const redirectUrl = searchParams.get('redirect') || '/chat';
+      router.push(redirectUrl);
+    }
 
     // Check for success messages in URL params
-    if (urlParams.get('verified') === 'true') {
+    if (searchParams.get('verified') === 'true') {
       setError('');  // Clear any existing errors
       setSuccess('Email verified successfully! You can now sign in.');
-    } else if (urlParams.get('message') === 'password_reset_success') {
+    } else if (searchParams.get('message') === 'password_reset_success') {
       setError('');  // Clear any existing errors
       setSuccess('Password updated successfully! You can now sign in with your new password.');
     }
-  }, [router]);
+  }, [user, router, searchParams]);
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,27 +40,63 @@ export default function SignIn() {
     setError("");
     setSuccess("");
 
-    // Get redirect URL from query params
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectUrl = urlParams.get('redirect') || '/chat';
+    try {
+      // Call the Supabase signin API route
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: redirectUrl,
-    });
+      const data = await response.json();
 
-    if (result?.error) {
-      setError("Invalid email or password");
+      if (!response.ok) {
+        setError(data.error || 'Failed to sign in');
+        setLoading(false);
+        return;
+      }
+
+      // Set the session in Supabase client
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+
+        // Redirect after successful sign-in
+        const redirectUrl = searchParams.get('redirect') || '/chat';
+        router.push(redirectUrl);
+      }
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleGoogleSignIn = () => {
-    // Get redirect URL from query params
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectUrl = urlParams.get('redirect') || '/chat';
-    signIn("google", { callbackUrl: redirectUrl });
+  const handleGoogleSignIn = async () => {
+    try {
+      const redirectUrl = searchParams.get('redirect') || '/chat';
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err: any) {
+      console.error('Google sign in error:', err);
+      setError('Failed to sign in with Google. Please try again.');
+    }
   };
 
   return (
@@ -71,9 +105,9 @@ export default function SignIn() {
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto w-20 h-20 relative mb-6">
-            <Image 
-              src="/Nex_logomark_white.png" 
-              alt="NeX Logo" 
+            <Image
+              src="/Nex_logomark_white.png"
+              alt="NeX Logo"
               fill
               className="object-contain"
             />
@@ -94,13 +128,13 @@ export default function SignIn() {
                 {error}
               </div>
             )}
-            
+
             {success && (
               <div className="p-3 bg-green-900/50 border border-green-600/50 rounded-lg text-green-200 text-sm">
                 {success}
               </div>
             )}
-            
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email address
@@ -115,14 +149,14 @@ export default function SignIn() {
                 placeholder="Enter your email"
               />
             </div>
-            
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-300">
                   Password
                 </label>
-                <Link 
-                  href="/forgot-password" 
+                <Link
+                  href="/forgot-password"
                   className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
                 >
                   Forgot password?
@@ -173,8 +207,8 @@ export default function SignIn() {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Don't have an account?{" "}
-              <Link 
-                href="/auth/signup" 
+              <Link
+                href="/auth/signup"
                 className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200"
               >
                 Sign up
