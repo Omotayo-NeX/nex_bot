@@ -259,8 +259,8 @@ export default function ChatPage() {
       // Add a small delay to prevent race conditions with auth state updates
       const timeoutId = setTimeout(() => {
         if (!user) {
-          console.log('🔄 No user found, redirecting to home...');
-          router.replace('/');
+          console.log('🔄 No user found, redirecting to sign-in...');
+          router.replace('/auth/signin?redirect=/chat');
         }
       }, 1000);
 
@@ -269,7 +269,7 @@ export default function ChatPage() {
 
     // TODO: Email verification check can be re-enabled later when billing or premium features are introduced
     // For now, all users can access chat immediately after signup
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   if (loading) {
     return (

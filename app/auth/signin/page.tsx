@@ -15,15 +15,18 @@ export default function SignIn() {
   const router = useRouter();
 
   useEffect(() => {
+    // Get redirect URL from query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect') || '/chat';
+
     // Check if user is already signed in
     getSession().then(session => {
       if (session) {
-        router.push('/chat');
+        router.push(redirectUrl);
       }
     });
-    
+
     // Check for success messages in URL params
-    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('verified') === 'true') {
       setError('');  // Clear any existing errors
       setSuccess('Email verified successfully! You can now sign in.');
@@ -39,10 +42,14 @@ export default function SignIn() {
     setError("");
     setSuccess("");
 
+    // Get redirect URL from query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect') || '/chat';
+
     const result = await signIn("credentials", {
       email,
       password,
-      callbackUrl: "/chat",
+      callbackUrl: redirectUrl,
     });
 
     if (result?.error) {
@@ -52,7 +59,10 @@ export default function SignIn() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/chat" });
+    // Get redirect URL from query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect') || '/chat';
+    signIn("google", { callbackUrl: redirectUrl });
   };
 
   return (
