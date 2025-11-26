@@ -93,7 +93,7 @@ export default function NexLabsHomepage() {
                 className="object-contain filter brightness-0"
               />
             </div>
-            <span className="text-2xl font-bold text-gray-900 group-hover:text-nex-navy transition-colors">
+            <span className="text-lg sm:text-2xl font-bold text-gray-900 group-hover:text-nex-navy transition-colors">
               NeX Labs
             </span>
           </Link>
@@ -186,7 +186,7 @@ export default function NexLabsHomepage() {
             </span>
           </motion.div>
 
-          <h1 className="text-5xl md:text-7xl font-heading font-bold mb-8 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-heading font-bold mb-8 leading-tight">
             <span className="block text-gray-900 drop-shadow-sm">AI Products Powering</span>
             <span className="block bg-gradient-to-r from-nex-navy via-nex-purple to-nex-purple-light bg-clip-text text-transparent drop-shadow-sm">
               Africa's Future
@@ -198,7 +198,7 @@ export default function NexLabsHomepage() {
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="text-xl md:text-2xl text-gray-800 font-medium mb-12 max-w-4xl mx-auto leading-relaxed relative z-10 drop-shadow-sm"
+          className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-800 font-medium mb-12 max-w-4xl mx-auto leading-relaxed relative z-10 drop-shadow-sm px-4"
         >
           From <Link href="/chat" className="text-nex-navy hover:text-nex-purple underline decoration-nex-purple/30 transition-colors">AI Chat assistants</Link> to <Link href="/expensa" className="text-nex-navy hover:text-nex-purple underline decoration-nex-purple/30 transition-colors">intelligent expense tracking</Link>, NeX Labs builds automation tools that help African businesses work smarter.
         </motion.h2>
@@ -213,9 +213,9 @@ export default function NexLabsHomepage() {
             onClick={() => scrollToSection('products')}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
-            className="relative px-10 py-5 text-lg font-semibold rounded-2xl bg-nex-purple text-white hover:bg-nex-purple-dark transition-all duration-300 shadow-2xl hover:shadow-nex-purple/50"
+            className="relative w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg font-semibold rounded-2xl bg-nex-purple text-white hover:bg-nex-purple-dark transition-all duration-300 shadow-2xl hover:shadow-nex-purple/50"
           >
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
               Explore Our Products
               <ArrowRight className="w-5 h-5 ml-2" />
             </span>
@@ -224,10 +224,11 @@ export default function NexLabsHomepage() {
           <motion.div
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
+            className="w-full sm:w-auto"
           >
             <Link
               href="/chat"
-              className="relative px-10 py-5 text-lg font-semibold rounded-2xl bg-nex-navy text-white hover:bg-nex-navy-light transition-all duration-300 shadow-xl"
+              className="relative block w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg font-semibold rounded-2xl bg-nex-navy text-white hover:bg-nex-navy-light transition-all duration-300 shadow-xl text-center"
             >
               Try NeX AI Chat
             </Link>
@@ -241,7 +242,7 @@ export default function NexLabsHomepage() {
           transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
           className="mt-20 relative"
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 max-w-4xl mx-auto px-4">
             {[
               { icon: MessageSquare, label: "AI Chat" },
               { icon: Wallet, label: "Expense" },
@@ -254,10 +255,10 @@ export default function NexLabsHomepage() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.9 + index * 0.1 }}
                 whileHover={{ y: -5, scale: 1.05 }}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100"
+                className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100"
               >
-                <item.icon className="w-8 h-8 text-nex-purple mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-900">{item.label}</p>
+                <item.icon className="w-6 h-6 sm:w-8 sm:h-8 text-nex-purple mx-auto mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm font-semibold text-gray-900">{item.label}</p>
               </motion.div>
             ))}
           </div>
@@ -275,13 +276,13 @@ export default function NexLabsHomepage() {
               transition={{ duration: 0.8, ease: "easeOut" }}
               viewport={{ once: true, margin: "-100px" }}
             >
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
                 Where Intelligence Meets Innovation
               </h2>
-              <p className="text-lg text-gray-600 leading-relaxed mb-6">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed mb-6">
                 NeX Labs is where intelligence meets innovation. We design and build <strong>AI products for African businesses</strong> that automate workflows, improve communication, and drive efficiency.
               </p>
-              <p className="text-lg text-gray-600 leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed">
                 Every product we launch — from <Link href="/chat" className="text-nex-navy hover:text-nex-purple font-semibold underline decoration-nex-purple/30">NeX AI Chat</Link> to <Link href="/expensa" className="text-nex-navy hover:text-nex-purple font-semibold underline decoration-nex-purple/30">NeX Expense</Link> — is built to bring the future of automation closer to you.
               </p>
             </motion.div>
@@ -349,15 +350,15 @@ export default function NexLabsHomepage() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
               Our AI Products
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
               Intelligent solutions powering the future of business automation
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* NeX AI Chat */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
@@ -376,9 +377,9 @@ export default function NexLabsHomepage() {
                   className="absolute -bottom-10 -right-10 w-40 h-40 border-4 border-nex-purple/30 rounded-full"
                 />
               </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">NeX AI Chat</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">NeX AI Chat</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
                   Your AI assistant for automation, voice, and intelligent workflows. Create content, automate tasks, and communicate smarter.
                 </p>
                 <Link
@@ -409,9 +410,9 @@ export default function NexLabsHomepage() {
                   className="absolute -bottom-10 -right-10 w-40 h-40 border-4 border-white/30 rounded-full"
                 />
               </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">NeX Expense</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">NeX Expense</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
                   Smart expense tracking powered by AI — capture receipts, automate reports, and approve in seconds.
                 </p>
                 <Link
@@ -447,9 +448,9 @@ export default function NexLabsHomepage() {
                   className="absolute bottom-8 right-8 w-20 h-20 bg-white/20 rounded-full"
                 />
               </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">NeX Voice</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">NeX Voice</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
                   Human-like voice automation for brands and businesses. Create professional voice overs in African languages.
                 </p>
                 <button className="inline-flex items-center text-purple-600 font-semibold hover:text-indigo-700 transition-colors">
@@ -482,9 +483,9 @@ export default function NexLabsHomepage() {
                   className="absolute bottom-8 right-8 w-16 h-16 bg-white/20 rounded-lg rotate-12"
                 />
               </div>
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">NeX Studio</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">NeX Studio</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
                   AI design and content generation tools for creators. Build stunning visuals, videos, and marketing content.
                 </p>
                 <button className="inline-flex items-center text-orange-600 font-semibold hover:text-rose-600 transition-colors">
@@ -519,13 +520,13 @@ export default function NexLabsHomepage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight">
               Building Africa's <br />
               <span className="bg-gradient-to-r from-nex-navy via-nex-purple to-nex-navy bg-clip-text text-transparent">
                 Intelligent Future
               </span>
             </h2>
-            <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed px-4">
               Our mission is to make creativity, productivity, and communication smarter for every business.
             </p>
 
@@ -541,10 +542,10 @@ export default function NexLabsHomepage() {
                   whileInView={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg"
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg"
                 >
-                  <h3 className="text-4xl font-bold text-nex-navy mb-2">{stat.number}</h3>
-                  <p className="text-gray-600 font-medium">{stat.label}</p>
+                  <h3 className="text-3xl sm:text-4xl font-bold text-nex-navy mb-2">{stat.number}</h3>
+                  <p className="text-sm sm:text-base text-gray-600 font-medium">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -571,10 +572,10 @@ export default function NexLabsHomepage() {
               </div>
 
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
                   Part of the NeX Consulting Ecosystem
                 </h2>
-                <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed px-4">
                   NeX Labs is part of NeX Consulting — Africa's creative and digital powerhouse. Together, we bridge AI innovation with real business growth.
                 </p>
                 <a
@@ -605,15 +606,15 @@ export default function NexLabsHomepage() {
             <span className="inline-block px-4 py-2 bg-nex-purple/10 text-nex-purple font-semibold rounded-full text-sm mb-4">
               Latest Insights
             </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
               From the NeX Labs Blog
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
               Stay updated with AI trends, product updates, and tips for African entrepreneurs
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-12">
             {/* Featured Blog Post 1 */}
             <motion.article
               initial={{ opacity: 0, y: 20 }}
@@ -635,16 +636,16 @@ export default function NexLabsHomepage() {
                   </span>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-500 mb-3">
                   <span>Oct 20, 2025</span>
                   <span>•</span>
                   <span>5 min read</span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-nex-purple transition-colors">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 group-hover:text-nex-purple transition-colors">
                   How AI is Transforming Business Operations in Africa
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   Discover how African businesses are leveraging AI technology to streamline operations, reduce costs, and improve customer experiences.
                 </p>
                 <Link
@@ -678,16 +679,16 @@ export default function NexLabsHomepage() {
                   </span>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-500 mb-3">
                   <span>Oct 15, 2025</span>
                   <span>•</span>
                   <span>7 min read</span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-nex-purple transition-colors">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 group-hover:text-nex-purple transition-colors">
                   Getting Started with NeX AI Chat: A Complete Guide
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   Learn how to maximize your productivity with NeX AI Chat. From basic commands to advanced features, this guide covers everything you need.
                 </p>
                 <Link
@@ -723,7 +724,7 @@ export default function NexLabsHomepage() {
       {/* Footer */}
       <footer className="relative z-10 bg-nex-navy text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
@@ -736,16 +737,16 @@ export default function NexLabsHomepage() {
                     className="object-contain"
                   />
                 </div>
-                <span className="text-2xl font-bold">NeX Labs</span>
+                <span className="text-xl sm:text-2xl font-bold">NeX Labs</span>
               </div>
-              <p className="text-white/70 leading-relaxed max-w-md">
+              <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-md">
                 Building Africa's intelligent future with innovative AI products that empower businesses to work smarter.
               </p>
             </div>
 
             {/* Products */}
             <div>
-              <h3 className="font-bold text-lg mb-4">Products</h3>
+              <h3 className="font-bold text-base sm:text-lg mb-4">Products</h3>
               <ul className="space-y-2">
                 <li>
                   <Link href="/chat" className="text-white/70 hover:text-nex-purple transition-colors">
@@ -768,7 +769,7 @@ export default function NexLabsHomepage() {
 
             {/* Company */}
             <div>
-              <h3 className="font-bold text-lg mb-4">Company</h3>
+              <h3 className="font-bold text-base sm:text-lg mb-4">Company</h3>
               <ul className="space-y-2">
                 <li>
                   <button
