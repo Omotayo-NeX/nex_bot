@@ -246,7 +246,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       initial={{ x: -260, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-[85vw] sm:w-[320px] md:w-[280px] bg-nex-surface border-r border-nex-border flex flex-col h-full"
+      className="w-full h-full bg-nex-surface border-r border-nex-border flex flex-col"
     >
       {/* NeX AI Title */}
       <div className="px-4 sm:px-6 py-4 border-b border-nex-border">

@@ -1,5 +1,8 @@
 import { registerOTel } from '@vercel/otel';
 
 export function register() {
-  registerOTel({ serviceName: 'ai-chatbot' });
+  // Only register OTEL in production to avoid development console errors
+  if (process.env.NODE_ENV === 'production') {
+    registerOTel({ serviceName: 'ai-chatbot' });
+  }
 }

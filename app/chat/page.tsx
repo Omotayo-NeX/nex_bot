@@ -477,7 +477,7 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {/* Left Sidebar */}
-      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out lg:transition-none w-[85vw] sm:w-[320px] md:w-[280px]`}>
+      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out lg:transition-none w-[85vw] sm:w-[320px] lg:w-[280px] h-full`}>
         <LeftSidebar
           onNewChat={handleNewChat}
           onCloseSidebar={() => setSidebarOpen(false)}

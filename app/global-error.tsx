@@ -39,8 +39,8 @@ export default function GlobalError({
               Our team has been notified.
             </p>
 
-            {/* Error Details (Dev Mode) */}
-            {process.env.NODE_ENV === 'development' && error.message && (
+            {/* Error Details (always shown for debugging) */}
+            {error.message && (
               <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
                 <p className="text-xs font-mono text-gray-700 break-words">
                   {error.message}

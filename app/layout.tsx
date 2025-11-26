@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from '@/lib/providers'
 import { Toaster } from 'sonner'
@@ -24,6 +24,18 @@ const poppins = Poppins({
   adjustFontFallback: true,
 })
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0E0E12' },
+  ],
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://ai.nexconsultingltd.com'),
   title: {
@@ -31,17 +43,6 @@ export const metadata: Metadata = {
     template: '%s | NeX Labs'
   },
   description: 'AI-powered business automation for African entrepreneurs. Build smarter with NeX AI Chat, NeX Expense tracking, and intelligent workflows.',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover',
-  },
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0E0E12' },
-  ],
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
