@@ -117,7 +117,7 @@ export default function AddExpenseModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -132,16 +132,16 @@ export default function AddExpenseModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-700 shadow-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
+            className="relative bg-gray-900 rounded-none sm:rounded-2xl border-0 sm:border border-gray-700 shadow-2xl max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-700/50">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-700/50 sticky top-0 bg-gray-900 z-10">
               <h2 className="text-xl sm:text-2xl font-bold text-white">
                 {initialData ? 'Edit Expense' : 'Add New Expense'}
               </h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-300 transition-colors p-2 hover:bg-gray-800 rounded-lg flex-shrink-0"
+                className="text-gray-400 hover:text-gray-300 transition-colors p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-800 rounded-lg flex-shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Square, Loader2, Image as ImageIcon, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { hapticFeedback } from '@/lib/utils/haptics';
 
 interface ChatInputProps {
   onSendMessage: (message: string, images?: string[]) => void;
@@ -138,6 +139,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
     e.preventDefault();
     if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
 
+    hapticFeedback.light(); // Add haptic feedback on send
     onSendMessage(input || 'What do you see in this image?', selectedImages.length > 0 ? selectedImages : undefined);
     setInput('');
     setSelectedImages([]);
@@ -167,10 +169,12 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
     }
 
     if (isRecording) {
+      hapticFeedback.medium(); // Haptic when stopping recording
       recognition.stop();
       setIsRecording(false);
     } else {
       try {
+        hapticFeedback.light(); // Haptic when starting recording
         recognition.start();
       } catch (error) {
         console.error('Error starting speech recognition:', error);

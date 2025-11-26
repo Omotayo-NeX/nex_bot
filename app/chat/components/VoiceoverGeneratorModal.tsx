@@ -176,26 +176,26 @@ export default function VoiceoverGeneratorModal({ onClose }: VoiceoverGeneratorM
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-gray-900 rounded-none sm:rounded-2xl max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col border-0 sm:border border-gray-700">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-              <Volume2 className="w-4 h-4 text-white" />
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Voiceover Generator</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-white truncate">Voiceover Generator</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
           >
-            <X className="w-6 h-6 text-gray-400" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {/* Voice Selection */}
           <div>
             <label className="block text-gray-300 text-sm font-medium mb-3">

@@ -173,31 +173,31 @@ export default function PictureGeneratorModal({ onClose }: PictureGeneratorModal
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
       />
       
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="fixed inset-4 md:inset-8 lg:inset-16 bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl z-50 flex flex-col border border-gray-700/50"
+        className="fixed inset-0 sm:inset-4 md:inset-8 lg:inset-16 bg-gradient-to-br from-gray-900 to-gray-800 rounded-none sm:rounded-3xl shadow-2xl z-50 flex flex-col border-0 sm:border border-gray-700/50"
       >
         {/* Enhanced Header */}
-        <div className="flex justify-between items-center p-6 lg:p-8 border-b border-gray-700/50 bg-gradient-to-r from-purple-600/10 to-blue-600/10">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <ImageIcon className="w-6 h-6 text-white" />
+        <div className="flex justify-between items-center p-4 sm:p-6 lg:p-8 border-b border-gray-700/50 bg-gradient-to-r from-purple-600/10 to-blue-600/10 sticky top-0 z-10">
+          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent truncate">
                 AI Picture Generator
               </h2>
-              <p className="text-gray-400 text-sm">Create stunning images with artificial intelligence</p>
+              <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">Create stunning images with artificial intelligence</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-3 hover:bg-gray-700/50 rounded-xl transition-colors group"
+            className="p-3 sm:p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700/50 rounded-xl transition-colors group flex-shrink-0"
           >
-            <X className="w-6 h-6 text-gray-400 group-hover:text-white" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 group-hover:text-white" />
           </button>
         </div>
 

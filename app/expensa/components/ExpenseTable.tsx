@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Edit, Trash2, Eye, Calendar, Tag, User } from 'lucide-react';
 import { useState } from 'react';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import { hapticFeedback } from '@/lib/utils/haptics';
 
 interface Expense {
   id: string;
@@ -108,6 +109,7 @@ export default function ExpenseTable({
   };
 
   const handleDeleteClick = (expense: Expense) => {
+    hapticFeedback.medium(); // Haptic feedback on delete attempt
     setExpenseToDelete({
       id: expense.id,
       name: expense.merchantName || 'Unknown Merchant'
@@ -116,6 +118,7 @@ export default function ExpenseTable({
   };
 
   const handleConfirmDelete = () => {
+    hapticFeedback.strong(); // Strong haptic on confirm delete
     if (expenseToDelete) {
       onDelete(expenseToDelete.id);
       setDeleteModalOpen(false);
@@ -265,18 +268,18 @@ export default function ExpenseTable({
             className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4"
           >
             {/* Header: Merchant and Amount */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="text-white font-semibold text-base truncate">
+            <div className="flex items-start justify-between mb-3 gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-white font-semibold text-sm sm:text-base truncate">
                   {expense.merchantName || 'N/A'}
                 </h3>
                 <div className="flex items-center space-x-1 text-gray-400 text-xs mt-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>{formatDate(expense.expenseDate)}</span>
+                  <Calendar className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{formatDate(expense.expenseDate)}</span>
                 </div>
               </div>
-              <div className="text-right ml-2">
-                <div className="text-white font-bold text-lg">
+              <div className="text-right ml-2 flex-shrink-0">
+                <div className="text-white font-bold text-base sm:text-lg whitespace-nowrap">
                   {formatCurrency(expense.amount, expense.currency)}
                 </div>
               </div>
@@ -306,11 +309,11 @@ export default function ExpenseTable({
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-700/50">
+            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-700/50 flex-wrap">
               {expense.receiptUrl && (
                 <button
                   onClick={() => onViewReceipt(expense.receiptUrl!)}
-                  className="flex items-center space-x-1 text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 hover:bg-blue-500/10 rounded-lg text-sm"
+                  className="flex items-center space-x-1 text-blue-400 hover:text-blue-300 transition-colors px-4 py-2.5 min-h-[44px] hover:bg-blue-500/10 rounded-lg text-sm"
                 >
                   <Eye className="w-4 h-4" />
                   <span>Receipt</span>
@@ -320,14 +323,14 @@ export default function ExpenseTable({
                 <>
                   <button
                     onClick={() => onEdit(expense)}
-                    className="flex items-center space-x-1 text-gray-400 hover:text-gray-300 transition-colors px-3 py-1.5 hover:bg-gray-700/50 rounded-lg text-sm"
+                    className="flex items-center space-x-1 text-gray-400 hover:text-gray-300 transition-colors px-4 py-2.5 min-h-[44px] hover:bg-gray-700/50 rounded-lg text-sm"
                   >
                     <Edit className="w-4 h-4" />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={() => handleDeleteClick(expense)}
-                    className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors px-3 py-1.5 hover:bg-red-500/10 rounded-lg text-sm"
+                    className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors px-4 py-2.5 min-h-[44px] hover:bg-red-500/10 rounded-lg text-sm"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Delete</span>

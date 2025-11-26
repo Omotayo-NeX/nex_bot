@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { hapticFeedback } from '@/lib/utils/haptics';
 
 interface LeftSidebarProps {
   onNewChat: () => void;
@@ -40,6 +41,12 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredConversations, setFilteredConversations] = useState<ConversationData[]>([]);
+
+  // Pull-to-refresh state
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch user data and conversations
   useEffect(() => {
@@ -123,6 +130,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
   };
 
   const handleConversationClick = (conversationId: string) => {
+    hapticFeedback.light(); // Haptic feedback on conversation selection
     if (onLoadConversation) {
       onLoadConversation(conversationId);
       if (onCloseSidebar) {
@@ -184,6 +192,37 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
     }
   }, [searchQuery, conversations]);
 
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer && scrollContainer.scrollTop === 0) {
+      setStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || scrollContainer.scrollTop > 0) return;
+
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - startY;
+
+    if (distance > 0 && distance < 100) {
+      setPullDistance(distance);
+      setIsPulling(distance > 60);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (isPulling && pullDistance > 60) {
+      hapticFeedback.medium();
+      await fetchConversations();
+    }
+    setIsPulling(false);
+    setPullDistance(0);
+    setStartY(0);
+  };
+
   // TODO: Email verification function can be re-enabled later when billing or premium features are introduced
 
   const getPlanDisplayName = (plan: string) => {
@@ -219,6 +258,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       <div className="p-3 sm:p-4 space-y-3">
         <button
           onClick={() => {
+            hapticFeedback.light(); // Haptic feedback on new chat
             onNewChat();
             onCloseSidebar?.();
           }}
@@ -264,7 +304,33 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       )}
 
       {/* Recent Chats */}
-      <div className="flex-1 px-3 sm:px-4 pb-4 overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 px-3 sm:px-4 pb-4 overflow-y-auto relative"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Pull-to-refresh indicator */}
+        {pullDistance > 0 && (
+          <div
+            className="absolute top-0 left-0 right-0 flex items-center justify-center transition-all duration-200"
+            style={{
+              transform: `translateY(${Math.min(pullDistance - 60, 0)}px)`,
+              opacity: pullDistance / 60
+            }}
+          >
+            <motion.div
+              animate={{ rotate: isPulling ? 180 : 0 }}
+              className="text-purple-400"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </motion.div>
+          </div>
+        )}
+
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
           <Clock className="w-3 h-3 mr-1" />
           Recent Chats
