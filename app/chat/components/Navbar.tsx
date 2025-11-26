@@ -38,7 +38,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }: NavbarProps) {
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="lg:hidden p-2 hover:bg-white/5 rounded-lg transition-all duration-200"
+              className="lg:hidden p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/5 rounded-lg transition-all duration-200"
               aria-label="Toggle sidebar"
             >
               {sidebarOpen ? (
@@ -65,7 +65,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }: NavbarProps) {
                 priority
               />
             </motion.div>
-            <span className="hidden md:block font-semibold text-lg tracking-tight">
+            <span className="hidden sm:block font-semibold text-base sm:text-lg tracking-tight">
               <span className="text-white">NeX </span>
               <span className="bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
                 AI
@@ -75,7 +75,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }: NavbarProps) {
         </div>
 
         {/* Center Section: Navigation Icons */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -91,7 +91,7 @@ export default function Navbar({ onToggleSidebar, sidebarOpen }: NavbarProps) {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => router.push(item.href)}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
+                  className={`p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-nex-gradient-start/20 to-nex-gradient-end/20 text-nex-gradient-end'
                       : 'hover:bg-white/5 text-gray-300 hover:text-nex-gradient-end'

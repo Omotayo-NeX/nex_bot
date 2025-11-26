@@ -11,6 +11,8 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
 })
 
 const poppins = Poppins({
@@ -18,6 +20,8 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
   variable: '--font-poppins',
   display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
 })
 
 export const metadata: Metadata = {
@@ -27,6 +31,25 @@ export const metadata: Metadata = {
     template: '%s | NeX Labs'
   },
   description: 'AI-powered business automation for African entrepreneurs. Build smarter with NeX AI Chat, NeX Expense tracking, and intelligent workflows.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0E0E12' },
+  ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'NeX AI',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   keywords: [
     'NeX Labs',
     'AI products Africa',

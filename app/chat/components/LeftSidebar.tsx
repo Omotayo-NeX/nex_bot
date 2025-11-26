@@ -207,16 +207,16 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       initial={{ x: -260, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-[280px] bg-nex-surface border-r border-nex-border flex flex-col h-full"
+      className="w-[85vw] sm:w-[320px] md:w-[280px] bg-nex-surface border-r border-nex-border flex flex-col h-full"
     >
       {/* NeX AI Title */}
-      <div className="px-6 py-4 border-b border-nex-border">
+      <div className="px-4 sm:px-6 py-4 border-b border-nex-border">
         <h2 className="text-lg font-semibold bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
           NeX AI
         </h2>
       </div>
       {/* New Chat Button */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 sm:p-4 space-y-3">
         <button
           onClick={() => {
             onNewChat();
@@ -243,7 +243,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
 
       {/* Pinned Chats */}
       {filteredConversations.filter(conv => conv.isPinned).length > 0 && (
-        <div className="px-4 pb-4">
+        <div className="px-3 sm:px-4 pb-4">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
             <Pin className="w-3 h-3 mr-1" />
             Pinned Chats
@@ -253,9 +253,9 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
               <button
                 key={chat.id}
                 onClick={() => handleConversationClick(chat.id)}
-                className="w-full flex flex-col items-start px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
+                className="w-full flex flex-col items-start px-3 py-3 min-h-[44px] text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
               >
-                <span className="text-sm font-medium truncate w-full text-left">{chat.title}</span>
+                <span className="text-sm font-medium truncate w-full text-left max-w-[200px] sm:max-w-none">{chat.title}</span>
                 <span className="text-xs text-gray-500 group-hover:text-gray-400">{chat.timestamp}</span>
               </button>
             ))}
@@ -264,7 +264,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       )}
 
       {/* Recent Chats */}
-      <div className="flex-1 px-4 pb-4 overflow-y-auto">
+      <div className="flex-1 px-3 sm:px-4 pb-4 overflow-y-auto">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
           <Clock className="w-3 h-3 mr-1" />
           Recent Chats
@@ -279,9 +279,9 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
               <button
                 key={chat.id}
                 onClick={() => handleConversationClick(chat.id)}
-                className="w-full flex flex-col items-start px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
+                className="w-full flex flex-col items-start px-3 py-3 min-h-[44px] text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors group"
               >
-                <span className="text-sm font-medium truncate w-full text-left">{chat.title}</span>
+                <span className="text-sm font-medium truncate w-full text-left max-w-[200px] sm:max-w-none">{chat.title}</span>
                 <div className="flex justify-between items-center w-full">
                   <span className="text-xs text-gray-500 group-hover:text-gray-400">{chat.timestamp}</span>
                   {chat.preview && (
@@ -302,7 +302,7 @@ export default function LeftSidebar({ onNewChat, onCloseSidebar, onLoadConversat
       </div>
 
       {/* User Info Footer */}
-      <div className="p-4 border-t border-gray-700/50 relative" ref={dropdownRef}>
+      <div className="p-3 sm:p-4 border-t border-gray-700/50 relative" ref={dropdownRef}>
         {userData ? (
           <>
             <div

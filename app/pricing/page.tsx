@@ -96,14 +96,14 @@ export default function PricingPage() {
 
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-6">
             Choose Your{' '}
             <span className="bg-gradient-to-r from-nex-yellow via-nex-yellow-dark to-nex-yellow-light bg-clip-text text-transparent">
               Perfect Plan
             </span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Unlock the full potential of NeX AI with our flexible pricing plans. 
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+            Unlock the full potential of NeX AI with our flexible pricing plans.
             From free exploration to enterprise solutions.
           </p>
         </div>
@@ -194,7 +194,7 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="mt-20 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-gray-800/30 rounded-xl p-6">
               <h3 className="font-semibold mb-3">Can I change my plan anytime?</h3>

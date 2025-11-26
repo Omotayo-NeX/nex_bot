@@ -65,7 +65,7 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
                 NeX AI
               </h1>
               <p className="text-sm text-nex-text-muted">Your AI Marketing Assistant</p>
@@ -110,10 +110,10 @@ export default function ChatArea({ messages, onSendMessage, isLoading }: ChatAre
                 />
               </motion.div>
 
-              <h2 className="text-3xl font-bold tracking-tight mb-4 bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 bg-gradient-to-r from-nex-gradient-start to-nex-gradient-end bg-clip-text text-transparent">
                 Welcome to NeX AI
               </h2>
-              <p className="text-nex-text-muted mb-8 text-lg leading-relaxed">
+              <p className="text-nex-text-muted mb-8 text-base sm:text-lg leading-relaxed">
                 I'm your AI assistant for digital marketing and automation. How can I help you today?
               </p>
 

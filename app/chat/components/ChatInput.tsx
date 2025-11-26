@@ -181,7 +181,12 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 lg:left-[280px] right-0 border-t border-nex-border bg-nex-surface/95 backdrop-blur-md z-40">
+    <footer
+      className="fixed bottom-0 left-0 lg:left-[280px] right-0 border-t border-nex-border bg-nex-surface/95 backdrop-blur-md z-40"
+      style={{
+        paddingBottom: 'max(env(safe-area-inset-bottom), 12px)'
+      }}
+    >
       <div className="mx-auto max-w-4xl px-4 py-3">
         <form onSubmit={handleSubmit}>
           {/* Image Previews */}
@@ -241,7 +246,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10"
+              className="p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10"
               disabled={isLoading || selectedImages.length >= 4}
               title={selectedImages.length >= 4 ? 'Maximum 4 images' : 'Upload image'}
               aria-label="Upload image"
@@ -252,7 +257,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="button"
               onClick={startRecording}
-              className={`p-2 rounded-lg transition-all duration-200 ${
+              className={`p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all duration-200 ${
                 isRecording
                   ? 'text-red-400 animate-pulse bg-red-500/10'
                   : speechSupported
@@ -269,7 +274,7 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             <button
               type="submit"
               disabled={(!input.trim() && selectedImages.length === 0) || isLoading}
-              className="p-2 text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10 hover:shadow-[0_0_10px_rgba(163,65,255,0.3)]"
+              className="p-3 sm:p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-nex-text-muted hover:text-nex-gradient-end disabled:text-gray-600 disabled:cursor-not-allowed transition-all duration-200 rounded-lg hover:bg-nex-gradient-end/10 hover:shadow-[0_0_10px_rgba(163,65,255,0.3)]"
               aria-label="Send message"
             >
               {isLoading ? (
