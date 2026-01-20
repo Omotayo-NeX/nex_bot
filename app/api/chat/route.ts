@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
     // 1. ENVIRONMENT VARIABLES VALIDATION
     const requiredEnvVars = {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-      NEX_PROMPT_ID: process.env.NEX_PROMPT_ID,
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       DATABASE_URL: process.env.DATABASE_URL
@@ -102,6 +101,10 @@ export async function POST(req: NextRequest) {
     }
     
     console.log(`✅ [Chat API] ${requestId} Environment variables validated`);
+
+    if (!process.env.NEX_PROMPT_ID) {
+      console.warn(`⚠️ [Chat API] ${requestId} Optional NEX_PROMPT_ID not configured – using default system prompt.`);
+    }
     
     // 2. AUTHENTICATION CHECK - Using Supabase
     const supabase = createClient(
